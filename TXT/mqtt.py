@@ -1,10 +1,10 @@
 import os , random
 from paho.mqtt import client as mqtt_client
 
-from app.utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
+from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 
-CLIENT_ID = "client-001"
-BROKER = "127.0.0.1"
+CAR_ID = "TXT-001"
+BROKER = "10.245.70.30"
 PORT = 8883
 TOPIC = "test/topic"
 
@@ -14,7 +14,9 @@ CN = get_cn_from_cert(cert_path)
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
-    client.subscribe(TOPIC)
+    msg = "alive from {}".format(CN)
+    client.publish(TOPIC, msg)
+    print("Sent:", msg)
 
 
 def on_message(client, userdata, msg):
@@ -26,7 +28,7 @@ def connect_mqtt():
     protocol=mqtt_client.MQTTv311
     )    
     client.tls_set(
-        ca_certs=fr'{CERT_FOLDER}/ca.crt',
+        ca_certs=r"{}/ca.crt".format(CERT_FOLDER),
         certfile=cert_path,
         keyfile=key_path
     )

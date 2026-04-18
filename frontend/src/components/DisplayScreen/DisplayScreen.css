@@ -1,0 +1,120 @@
+.display-screen {
+  display: flex;
+  flex-direction: column;
+}
+
+.speed-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bdr);
+}
+
+.spd-num {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1;
+  transition: color 0.2s;
+  color: var(--cyan);
+}
+
+.spd-unit {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--t3);
+  letter-spacing: 0.15em;
+  align-self: flex-end;
+  margin-bottom: 3px;
+}
+
+.spd-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: var(--bg4);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.spd-bar {
+  height: 100%;
+  border-radius: 100px;
+  background: var(--cyan);
+  transition: width 0.25s, background 0.2s;
+}
+
+.viz-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  min-height: 360px;
+}
+
+.viz-inner {
+  text-align: center;
+}
+
+.viz-icon {
+  font-size: 36px;
+  color: #9acdd6;
+  margin-bottom: 8px;
+}
+
+.viz-label {
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 13px;
+  color: var(--t3);
+}
+
+.viz-hint {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  color: var(--t3);
+  opacity: 0.5;
+  margin-top: 4px;
+  letter-spacing: 0.08em;
+}
+
+
+.viz-area {
+  position: relative; 
+}
+
+.tire-overlay {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  grid-template-columns: 22px 44px 22px;
+  grid-template-rows: 16px 74px 16px;
+  gap: 3px;
+  align-items: center;
+  justify-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: 8px;
+  padding: 8px;
+  opacity: 0.85;
+}
+
+.car-svg {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  width: 44px;
+  height: 74px;
+  align-self: center;
+}
+
+.tire {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.tire--front { grid-column: 2; grid-row: 1; }
+.tire--back  { grid-column: 2; grid-row: 3; }
+.tire--left  { grid-column: 1; grid-row: 2; }
+.tire--right { grid-column: 3; grid-row: 2; }

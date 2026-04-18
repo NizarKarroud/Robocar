@@ -1,11 +1,15 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from contextlib import asynccontextmanager
-from app.database.db import init_db
+from database.db import init_db
+from pydantic import BaseModel
+
 
 @asynccontextmanager
-def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI):
     init_db()
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+
 

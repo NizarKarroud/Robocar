@@ -1,0 +1,98 @@
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Chakra+Petch:wght@400;600;700&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* DARK THEME (default) */
+.app.dark {
+  --bg:    #0a0e1a;
+  --bg2:   #0f1623;
+  --bg3:   #2e4167;
+  --bg4:   #111827;
+  --bdr:   #1e2d45;
+  --cyan:  #00d4ff;
+  --cyanm: rgba(0, 212, 255, 0.12);
+  --amb:   #f59e0b;
+  --red:   #ef4444;
+  --grn:   #22c55e;
+  --t1:    #e2eaf5;
+  --t2:    #9acdd6;
+  --t3:    #9acdd6; 
+}
+
+/* LIGHT THEME */
+.app.light {
+  --bg:    #dde2ea;
+  --bg2:   #f4f6f9;
+  --bg3:   #e4e8ef;
+  --bg4:   #cdd3db;
+  --bdr:   #aab2be;
+  --cyan:  #0070a0;
+  --cyanm: rgba(0, 112, 160, 0.1);
+  --amb:   #b87500;
+  --red:   #cc2222;
+  --grn:   #1a9040;
+  --t1:    #0d1520;
+  --t2:    #2e4460;
+  --t3:    #5a6e85;
+}
+
+body {
+  font-family: 'Chakra Petch', sans-serif;
+}
+
+.app {
+  background: var(--bg);
+  color: var(--t1);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 12px;
+  max-width: 1400px;
+  margin: 0 auto;
+  transition: background 0.2s, color 0.2s;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  gap: 12px;
+  flex: 1;
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.panel-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--t3);
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--bdr);
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+::selection {
+  background: transparent;  /* or any color you want */
+  color: inherit;
+}

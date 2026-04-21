@@ -1,29 +1,41 @@
-import os , random
-from paho.mqtt import client as mqtt_client
+import json , os , random
+from paho.mqtt import client 
+import hmac
+import hashlib
+from pydantic import BaseModel
+import mqtt_handlers as Handler
+from schemas.signed import SignedPayload
+from utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 
-from app.utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 
-CLIENT_ID = "client-001"
-BROKER = "127.0.0.1"
+BROKER = "192.168.86.31"
 PORT = 8883
-TOPIC = "test/topic"
 
 
 cert_path, key_path = get_cert_and_key()
-CN = get_cn_from_cert(cert_path)
+CLIENT_ID = get_cn_from_cert(cert_path)
+
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
-    client.subscribe(TOPIC)
 
 
-def on_message(client, userdata, msg):
-    print(msg.topic, msg.payload.decode())
+def on_message(client, userdata, message):
+    topic = message.topic          
+    payload = json.loads(message.payload)
 
+    topic_key = "/".join(topic.split("/")[2:])  
+
+    handler = Handler.TOPIC_HANDLERS.get(topic_key)
+
+    if handler:
+        handler(payload)
+    else:
+        print(f"No handler for topic: {topic}")
 def connect_mqtt():
-    client = mqtt_client.Client(
-    client_id=CN,
-    protocol=mqtt_client.MQTTv311
+    client = client.Client(
+    client_id=CLIENT_ID,
+    protocol=client.MQTTv311
     )    
     client.tls_set(
         ca_certs=fr'{CERT_FOLDER}/ca.crt',
@@ -38,6 +50,11 @@ def connect_mqtt():
 
     return client
 
+def sign_and_publish(client : client.Client , topic : str , SECRET_KEY : str , payload : BaseModel):
+    json_data = payload.model_dump_json()
+    signature = hmac.new(SECRET_KEY , json_data.encode() , hashlib.sha256).hexdigest()
+    signed = SignedPayload(data=payload, signature=signature)
+    client.publish(topic , signed.model_dump_json())
 
-client = connect_mqtt()
-client.loop_forever()
+def sub_topics(client : client.Client , TXT):
+   ...

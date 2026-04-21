@@ -4,7 +4,7 @@ from paho.mqtt import client as mqtt_client
 from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 
 CAR_ID = "TXT-001"
-BROKER = "10.245.70.30"
+BROKER = "192.168.86.31"
 PORT = 8883
 TOPIC = "test/topic"
 
@@ -40,6 +40,3 @@ def connect_mqtt():
 
     return client
 
-
-client = connect_mqtt()
-client.loop_forever()

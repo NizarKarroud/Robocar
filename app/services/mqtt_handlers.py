@@ -1,6 +1,5 @@
-from schemas.car import CarStatus , ConnectionResponse , ConnectionStatus
-import state
-from database.db import save_car_status
+from app.schemas.car import CarStatus , ConnectionResponse , ConnectionStatus
+from app import state
 
 def handle_control_response(payload: dict):
     response = ConnectionResponse(**payload)
@@ -17,9 +16,7 @@ def handle_control_response(payload: dict):
         state.connection_event.set()
 
 def handle_car_status(payload: dict):
-    car_status = CarStatus(**payload)
-    save_car_status(car_status)
-
+    ...
 
 
 TOPIC_HANDLERS = {

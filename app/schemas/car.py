@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from enum import Enum
 
 class CarStatus(BaseModel):
+    car_id : str
     online: bool
     session : bool
     battery_level: float
@@ -13,6 +14,9 @@ class ConnectionRequest(BaseModel):
     car_key : str
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class ConnectionRequestMQTT(BaseModel):
+    car_id: str
+    timestamp: datetime
 
 class ConnectionStatus(str, Enum):
     ACCEPTED = "accepted"

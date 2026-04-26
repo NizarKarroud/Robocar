@@ -3,8 +3,9 @@ import json
 from mqtt_handlers import TOPIC_HANDLERS
 from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 
-CAR_ID = "TXT-001"
-BROKER = "10.245.70.30"
+
+
+BROKER = "10.188.174.166"
 PORT = 8883
 
 
@@ -13,21 +14,20 @@ CAR_ID = get_cn_from_cert(cert_path)
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
-    client.subscribe(f"car/{CAR_ID}/control/request")
-
+    client.subscribe("car/{}/control/request".format(CAR_ID))
 
 def on_message(client, userdata, message):
-    topic = message.topic          
-    payload = json.loads(message.payload)
-
+    topic = message.topic  
+    print(topic)        
+    raw = json.loads(message.payload.decode('utf-8'))
     topic_key = "/".join(topic.split("/")[2:])  
 
     handler = TOPIC_HANDLERS.get(topic_key)
 
     if handler:
-        handler(payload)
+        handler(raw ,client, CAR_ID )
     else:
-        print(f"No handler for topic: {topic}")
+        print("No handler for topic: {}".format(topic))
 
 def connect_mqtt():
     client = mqtt_client.Client(

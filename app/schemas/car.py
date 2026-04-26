@@ -12,7 +12,7 @@ class CarStatus(BaseModel):
 class ConnectionRequest(BaseModel):
     car_id : str
     car_key : str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ConnectionRequestMQTT(BaseModel):
     car_id: str

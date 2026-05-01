@@ -1,11 +1,9 @@
 from paho.mqtt import client as mqtt_client
 import json 
-from mqtt_handlers import TOPIC_HANDLERS
-from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
+from lib.mqtt_handlers import TOPIC_HANDLERS # type: ignore
+from lib.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER # type: ignore
 
-
-
-BROKER = "10.188.174.166"
+BROKER = "192.168.86.31"
 PORT = 8883
 
 
@@ -18,7 +16,6 @@ def on_connect(client, userdata, flags, rc):
 
 def on_message(client, userdata, message):
     topic = message.topic  
-    print(topic)        
     raw = json.loads(message.payload.decode('utf-8'))
     topic_key = "/".join(topic.split("/")[2:])  
 

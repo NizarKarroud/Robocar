@@ -6,14 +6,14 @@ from pydantic import BaseModel
 from app.services.mqtt_handlers import TOPIC_HANDLERS
 from app.schemas.signed import SignedPayload
 from app.utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
+from app import state
 
-
-BROKER = "10.188.174.166"
+BROKER = "192.168.86.31"
 PORT = 8883
 
 
 cert_path, key_path = get_cert_and_key()
-CLIENT_ID = get_cn_from_cert(cert_path)
+state.CLIENT_ID = get_cn_from_cert(cert_path)
 
 
 def on_connect(client, userdata, flags, rc):
@@ -34,7 +34,7 @@ def on_message(client, userdata, message):
         print(f"No handler for topic: {topic}")
 def connect_mqtt():
     client = mqtt_client.Client(
-    client_id=CLIENT_ID,
+    client_id=state.CLIENT_ID,
     protocol=mqtt_client.MQTTv311
     )    
     client.tls_set(

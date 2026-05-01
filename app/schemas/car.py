@@ -2,13 +2,6 @@ from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from enum import Enum
 
-class CarStatus(BaseModel):
-    car_id : str
-    online: bool
-    session : bool
-    battery_level: float
-    timestamp: datetime 
-    
 class ConnectionRequest(BaseModel):
     car_id : str
     car_key : str
@@ -16,6 +9,7 @@ class ConnectionRequest(BaseModel):
 
 class ConnectionRequestMQTT(BaseModel):
     car_id: str
+    client_id : str
     timestamp: datetime
 
 class ConnectionStatus(str, Enum):

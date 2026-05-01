@@ -20,6 +20,7 @@ async def control_request(
     
     mqtt_payload = ConnectionRequestMQTT(
         car_id=payload.car_id,
+        client_id = state.CLIENT_ID,
         timestamp=payload.timestamp
     )
 
@@ -36,6 +37,8 @@ async def control_request(
         return {"status": "timeout", "message": "Car did not respond"}
 
     if state.connection_accepted:
+        client.subscribe(f"car/{payload.car_id}/map")
+
         return {"status": "connected"}
     else:
         return {"status": "rejected"}

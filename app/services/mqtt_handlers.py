@@ -19,11 +19,7 @@ def handle_control_response(payload: dict):
         state.connection_accepted = False
         state.connection_event.set()
 
-def handle_car_status(payload: dict):
-    ...
-
 
 TOPIC_HANDLERS = {
     "control/response": handle_control_response,
-    "status": handle_car_status,
 }

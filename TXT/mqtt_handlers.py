@@ -3,7 +3,7 @@ import hmac
 import hashlib
 from datetime import datetime, timezone
 from paho.mqtt import client as mqtt_client
-
+import state
 SECRET_KEY = open("/etc/robocar/.secret").read().strip().encode()
 
 
@@ -25,8 +25,14 @@ def sign_and_publish(client: mqtt_client.Client, topic: str, SECRET_KEY: bytes, 
 
 def handle_control_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
     payload = json.dumps(raw["data"], separators=(',', ':'))
+    
+    
+    if not verify_signature(payload, raw["signature"]):
+        status = "rejected" 
+        state.CLIENT_ID = raw["data"]["client_id"]
+    else :
+        status = "accepted"
 
-    status = "rejected" if not verify_signature(payload, raw["signature"]) else "accepted"
 
     sign_and_publish(
         client=client,
@@ -39,12 +45,10 @@ def handle_control_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
         }
     )
 
-
-def handle_car_status(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+def handle_control_command(raw: dict, client: mqtt_client.Client, CAR_ID: str):
     ...
-
 
 TOPIC_HANDLERS = {
     "control/request": handle_control_request,
-    "status": handle_car_status,
+    "control/command" : handle_control_command
 }

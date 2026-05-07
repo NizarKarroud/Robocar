@@ -3,30 +3,23 @@ from lib.controller import *
 import threading
 import queue
 import time
+import wss
+import asyncio
 
-q = queue.Queue()
 
-def sensor_loop():
-    while True:
-        distance = TXT_M_I1_ultrasonic_distance_meter.get_distance()
-        q.put(distance)
-        time.sleep(0.1)  # 100 ms delay
+TXT_M_USB1_1_camera.set_rotate(False)
+TXT_M_USB1_1_camera.set_height(240)
+TXT_M_USB1_1_camera.set_width(320)
+TXT_M_USB1_1_camera.set_fps(30)
+TXT_M_USB1_1_camera.start()
 
-def consumer():
-    while True:
-        value = q.get()
-        print("Received:", value)
 
-# Create threads (non-daemon so program stays alive)
-t1 = threading.Thread(target=sensor_loop)
-t2 = threading.Thread(target=consumer)
-
-t1.start()
-t2.start()
+start_server = wss.start_wss(TXT_M_USB1_1_camera)
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
 
 # Keep main thread alive
-t1.join()
-t2.join()
+
 # from lib.mqtt import connect_mqtt
 
 # client = connect_mqtt()
@@ -43,11 +36,6 @@ t2.join()
 
 # app = Flask(__name__)
 
-# TXT_M_USB1_1_camera.set_rotate(False)
-# TXT_M_USB1_1_camera.set_height(240)
-# TXT_M_USB1_1_camera.set_width(320)
-# TXT_M_USB1_1_camera.set_fps(80)
-# TXT_M_USB1_1_camera.start()
 
 
 # def generate():

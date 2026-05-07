@@ -8,7 +8,7 @@ from app.schemas.signed import SignedPayload
 from app.utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 from app import state
 
-BROKER = "192.168.86.31"
+BROKER ="192.168.50.122"
 PORT = 8883
 
 

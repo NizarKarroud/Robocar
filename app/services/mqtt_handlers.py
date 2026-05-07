@@ -1,4 +1,4 @@
-from app.schemas.car import CarStatus , ConnectionResponse , ConnectionStatus
+from app.schemas.car import  ConnectionResponse , ConnectionStatus
 from app import state
 
 def handle_control_response(payload: dict):

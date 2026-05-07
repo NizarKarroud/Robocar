@@ -1,13 +1,13 @@
 from paho.mqtt import client as mqtt_client
 import json 
-from lib.mqtt_handlers import TOPIC_HANDLERS # type: ignore
-from lib.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER # type: ignore
+from mqtt_handlers import TOPIC_HANDLERS # type: ignore
+from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER # type: ignore
 
-BROKER = "192.168.86.31"
+BROKER ="192.168.50.122"
 PORT = 8883
 
 
-cert_path, key_path = get_cert_and_key()
+cert_path, key_path , ca_file = get_cert_and_key()
 CAR_ID = get_cn_from_cert(cert_path)
 
 def on_connect(client, userdata, flags, rc):

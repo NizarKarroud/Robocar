@@ -1,1 +1,1 @@
-CLIENT_ID = str | None = None
+CLIENT_ID = None

@@ -3,6 +3,7 @@ import re
 from cryptography import x509
 from cryptography.x509.oid import NameOID
 from cryptography.hazmat.backends import default_backend
+import ssl
 
 # Absolute path to THIS file's directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -26,12 +27,14 @@ def get_cert_and_key(folder_path=CERT_FOLDER):
 
         elif key_pattern.match(file):
             key_file = full_path
-
-    if not cert_file or not key_file:
+        else :
+            ca_file = full_path
+            
+    if not cert_file or not key_file or ca_file:
         raise FileNotFoundError(
             "Missing client-*.crt or client-*.key in {}".format(folder_path)
         )
-    return cert_file, key_file
+    return cert_file, key_file , ca_file
 
 
 def get_cn_from_cert(cert_path):
@@ -42,6 +45,16 @@ def get_cn_from_cert(cert_path):
         )
     cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)[0].value
     return cn
+
+
+def create_ssl_context(cert_file , key_file , ca_file):
+    ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    ssl_context.load_cert_chain(
+        certfile=cert_file,
+        keyfile=key_file
+    )
+    ssl_context.load_verify_locations(ca_file)
+    return ssl_context
 
 print("CERT_FOLDER:", CERT_FOLDER)
 print("FILES:", os.listdir(CERT_FOLDER))

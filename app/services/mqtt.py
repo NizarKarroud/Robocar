@@ -8,11 +8,11 @@ from app.schemas.signed import SignedPayload
 from app.utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 from app import state
 
-BROKER ="192.168.50.122"
+BROKER ="localhost"
 PORT = 8883
 
 
-cert_path, key_path = get_cert_and_key()
+cert_path, key_path , ca_file= get_cert_and_key()
 state.CLIENT_ID = get_cn_from_cert(cert_path)
 
 
@@ -38,7 +38,7 @@ def connect_mqtt():
     protocol=mqtt_client.MQTTv311
     )    
     client.tls_set(
-        ca_certs=fr'{CERT_FOLDER}/ca.crt',
+        ca_certs=ca_file,
         certfile=cert_path,
         keyfile=key_path
     )

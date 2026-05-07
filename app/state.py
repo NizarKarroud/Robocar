@@ -2,6 +2,9 @@ import asyncio
 from paho.mqtt import client 
 
 CLIENT_ID  = None
+TXT_IP  = None
+CAR_ID = None 
+
 mqtt_client: client.Client | None = None
 pending_key: str | None = None
 active_key: str | None = None

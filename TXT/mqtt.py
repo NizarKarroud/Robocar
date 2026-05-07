@@ -3,7 +3,7 @@ import json
 from mqtt_handlers import TOPIC_HANDLERS # type: ignore
 from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER # type: ignore
 
-BROKER ="192.168.50.122"
+BROKER ="192.168.86.31"
 PORT = 8883
 
 

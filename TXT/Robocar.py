@@ -1,9 +1,14 @@
+import sys
+from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parent.parent / "TXT"))
+
 from lib.controller import *
 
 import threading
 import queue
 import time
-import wss
+import stream as stream
 import asyncio
 
 
@@ -14,9 +19,13 @@ TXT_M_USB1_1_camera.set_fps(30)
 TXT_M_USB1_1_camera.start()
 
 
-start_server = wss.start_wss(TXT_M_USB1_1_camera)
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+threading.Thread(
+    target=stream.start_http,
+    args=(TXT_M_USB1_1_camera,),
+    daemon=True
+).start()
+while True:
+    time.sleep(1)
 
 # Keep main thread alive
 

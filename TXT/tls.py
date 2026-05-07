@@ -36,7 +36,7 @@ def get_cert_and_key(folder_path=CERT_FOLDER):
             
     if not cert_file or not key_file or not ca_file:
         raise FileNotFoundError(
-            "Missing client-*.crt or client-*.key in {}".format(folder_path)
+            "Missing txt-*.crt or txt-*.key in {}".format(folder_path)
         )
     return cert_file, key_file , ca_file
 
@@ -61,5 +61,3 @@ def create_ssl_context(cert_file , key_file , ca_file):
     ssl_context.verify_mode = ssl.CERT_REQUIRED
     return ssl_context
 
-print("CERT_FOLDER:", CERT_FOLDER)
-print("FILES:", os.listdir(CERT_FOLDER))

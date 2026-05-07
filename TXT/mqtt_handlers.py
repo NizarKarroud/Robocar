@@ -48,6 +48,9 @@ def handle_control_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
 def handle_control_command(raw: dict, client: mqtt_client.Client, CAR_ID: str):
     ...
 
+def handle_control_camera_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+    ...
+
 TOPIC_HANDLERS = {
     "control/request": handle_control_request,
     "control/command" : handle_control_command

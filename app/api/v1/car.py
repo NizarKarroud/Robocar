@@ -38,6 +38,8 @@ async def control_request(
 
     if state.connection_accepted:
         client.subscribe(f"car/{payload.car_id}/map")
+        client.subscribe(f"car/{payload.car_id}/control/camera/request")
+        client.subscribe(f"car/{payload.car_id}/control/camera/response")
 
         return {"status": "connected"}
     else:

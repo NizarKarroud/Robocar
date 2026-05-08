@@ -3,34 +3,73 @@ import hmac
 import hashlib
 from datetime import datetime, timezone
 from paho.mqtt import client as mqtt_client
-import state
+import state , services
+import socket
+
 SECRET_KEY = open("/etc/robocar/.secret").read().strip().encode()
 
 
-def verify_signature(payload_json: str, received_signature: str) -> bool:
-    expected = hmac.new(
+def get_local_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    try:
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+    finally:
+        s.close()
+
+    return ip
+
+
+
+def canonical_json(obj) -> str:
+    return json.dumps(
+        obj,
+        separators=(',', ':'),
+        sort_keys=True
+    )
+
+def sign_and_publish(client, topic: str, SECRET_KEY: bytes, payload: dict):
+
+    json_data = canonical_json(payload)
+    print(json_data)
+
+    signature = hmac.new(
         SECRET_KEY,
-        payload_json.encode(),         
+        json_data.encode("utf-8"),
         hashlib.sha256
     ).hexdigest()
-    return hmac.compare_digest(expected, received_signature)
+
+    signed = {
+        "data": payload,
+        "signature": signature
+    }
+
+    client.publish(topic, canonical_json(signed))
 
 
-def sign_and_publish(client: mqtt_client.Client, topic: str, SECRET_KEY: bytes, payload: dict):
-    payload_json = json.dumps(payload, separators=(',', ':'))  
-    signature = hmac.new(SECRET_KEY, payload_json.encode(), hashlib.sha256).hexdigest()
-    signed = {"data": payload, "signature": signature}
-    client.publish(topic, json.dumps(signed))                  
+def verify_signature(payload: dict, received_signature: str) -> bool:
+    json_data = canonical_json(payload)
+    print(json_data)
+    expected = hmac.new(
+        SECRET_KEY,
+        json_data.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    return hmac.compare_digest(expected, received_signature.strip())           
 
 
 def handle_control_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
-    payload = json.dumps(raw["data"], separators=(',', ':'))
+
+
+    validity = verify_signature(raw["data"], raw["signature"])
+    print(validity)
     
-    
-    if not verify_signature(payload, raw["signature"]):
+    if not validity:
         status = "rejected" 
-        state.CLIENT_ID = raw["data"]["client_id"]
     else :
+        state.CLIENT_ID = raw["data"]["client_id"]
         status = "accepted"
 
 
@@ -49,9 +88,45 @@ def handle_control_command(raw: dict, client: mqtt_client.Client, CAR_ID: str):
     ...
 
 def handle_control_camera_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
-    ...
+
+    validity = verify_signature(raw["data"], raw["signature"])
+    print(validity)
+    
+    if not validity:
+        status = "rejected" 
+    else :
+        request_type = raw["data"].get("request")
+        client_id = raw["data"].get("client_id")
+        print(client_id , state.CLIENT_ID)
+
+        if request_type == "connection" and state.CLIENT_ID == client_id :
+            services.camera_stream.start()
+            print("connected")
+            status = "connected"
+
+        elif request_type == "disconnection" and state.CLIENT_ID == client_id :
+            status = "disconnected"
+
+            services.camera_stream.stop()
+
+        else:
+            status = "rejected"
+        
+    
+    sign_and_publish(
+        client=client,
+        topic="car/{}/control/camera/response".format(CAR_ID),
+        SECRET_KEY=SECRET_KEY,
+        payload={
+            "status": status,
+            "car_ip" : get_local_ip() if status == "connected" else "",
+            "path" : "/video" if status == "connected" else "",
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
 
 TOPIC_HANDLERS = {
     "control/request": handle_control_request,
-    "control/command" : handle_control_command
+    "control/command" : handle_control_command,
+    "control/camera/request" : handle_control_camera_request ,
 }

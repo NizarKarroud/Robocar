@@ -13,6 +13,7 @@ CAR_ID = get_cn_from_cert(cert_path)
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
     client.subscribe("car/{}/control/request".format(CAR_ID))
+    client.subscribe("car/{}/control/camera/request".format(CAR_ID))
 
 def on_message(client, userdata, message):
     topic = message.topic  

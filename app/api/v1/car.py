@@ -5,7 +5,7 @@ from paho.mqtt import client as mqtt_client
 
 from app import state
 from app.schemas.car import  ConnectionRequest , ConnectionRequestMQTT
-from app.api.deps import get_mqtt_client , get_db
+from app.api.deps import get_mqtt_client 
 from app.services.mqtt import sign_and_publish
 
 router = APIRouter()
@@ -28,7 +28,7 @@ async def control_request(
         client=client,
         topic=f"car/{payload.car_id}/control/request",
         payload=mqtt_payload,
-        SECRET_KEY=payload.car_key.encode()
+        SECRET_KEY=payload.car_key.strip().encode()
     )
     try:
         await asyncio.wait_for(state.connection_event.wait(), timeout=15.0) 
@@ -38,7 +38,6 @@ async def control_request(
 
     if state.connection_accepted:
         client.subscribe(f"car/{payload.car_id}/map")
-        client.subscribe(f"car/{payload.car_id}/control/camera/request")
         client.subscribe(f"car/{payload.car_id}/control/camera/response")
 
         return {"status": "connected"}

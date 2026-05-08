@@ -8,8 +8,10 @@ from lib.controller import *
 import threading
 import queue
 import time
-import stream as stream
 import asyncio
+from stream import CameraStreamServer
+import services
+from mqtt import connect_mqtt
 
 
 TXT_M_USB1_1_camera.set_rotate(False)
@@ -19,12 +21,15 @@ TXT_M_USB1_1_camera.set_fps(30)
 TXT_M_USB1_1_camera.start()
 
 
-threading.Thread(
-    target=stream.start_http,
-    args=(TXT_M_USB1_1_camera,),
-    daemon=True
-).start()
+
+services.camera_stream = CameraStreamServer(
+    TXT_M_USB1_1_camera
+)
+client = connect_mqtt()
+client.loop_start()   # ✅ NON-BLOCKING
+
 while True:
+    
     time.sleep(1)
 
 # Keep main thread alive

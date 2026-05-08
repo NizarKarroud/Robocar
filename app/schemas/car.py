@@ -1,12 +1,14 @@
 from pydantic import BaseModel, Field
+from typing import Optional
+
 from datetime import datetime, timezone
 from enum import Enum
+from app.state import CLIENT_ID
 
 class ConnectionRequest(BaseModel):
     car_id : str
     car_key : str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 class ConnectionRequestMQTT(BaseModel):
     car_id: str
     client_id : str
@@ -34,12 +36,15 @@ class CameraRequestType(str, Enum):
 class CameraRequestStatus(str, Enum):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
+    DISCONNECTED = "disconnected"
 
 class CameraRequest(BaseModel):
     request : CameraRequestType
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
+    client_id: str = ""
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CameraResponse(BaseModel):
     status : CameraRequestStatus
+    car_ip: Optional[str] = None
+    path: Optional[str] = None
     timestamp: datetime 

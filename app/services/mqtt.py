@@ -15,6 +15,12 @@ PORT = 8883
 cert_path, key_path , ca_file= get_cert_and_key()
 state.CLIENT_ID = get_cn_from_cert(cert_path)
 
+def canonical_json(obj):
+    return json.dumps(
+        obj,
+        sort_keys=True,
+        separators=(',', ':')
+    )
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)
@@ -50,11 +56,25 @@ def connect_mqtt():
 
     return client
 
-def sign_and_publish(client : mqtt_client.Client , topic : str , SECRET_KEY : str , payload : BaseModel):
-    json_data = payload.model_dump_json()
-    signature = hmac.new(SECRET_KEY , json_data.encode() , hashlib.sha256).hexdigest()
-    signed = SignedPayload(data=payload, signature=signature)
-    client.publish(topic , signed.model_dump_json())
+
+def sign_and_publish(client, topic, SECRET_KEY, payload: BaseModel):
+    data_dict = payload.model_dump(mode="json", exclude_none=True)
+
+    json_data = canonical_json(data_dict)
+    print(json_data)
+    
+    signature = hmac.new(
+        SECRET_KEY,
+        json_data.encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    signed = {
+        "data": data_dict,
+        "signature": signature
+    }
+
+    client.publish(topic, canonical_json(signed))
 
 def sub_topics(client : mqtt_client.Client , TXT):
    ...

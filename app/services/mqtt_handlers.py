@@ -1,4 +1,4 @@
-from app.schemas.car import  ConnectionResponse , ConnectionStatus , CameraResponse
+from app.schemas.car import  ConnectionResponse , ConnectionStatus , CameraResponse , CameraRequestStatus
 from app import state
 
 def handle_control_response(payload: dict):
@@ -24,18 +24,20 @@ def handle_control_response(payload: dict):
 
 def handle_control_camera_response(payload : dict):
     response = CameraResponse(**payload.get("data"))
-    if response.status == CameraResponse.ACCEPTED :
-        state.CAMERA_STATUS = CameraResponse.ACCEPTED 
-        state.CAMERA_URL = f"https://{response.car_ip}{response.path}"
+    print(response)
+
+    if response.status == CameraRequestStatus.ACCEPTED :
+        state.CAMERA_STATUS = "accepted" 
+        state.CAMERA_URL = f"https://{response.car_ip}:{response.port}{response.path}"
         state.camera_event.set()  
 
-    elif response.status == CameraResponse.DISCONNECTED:
-        state.CAMERA_STATUS = CameraResponse.DISCONNECTED 
+    elif response.status == CameraRequestStatus.DISCONNECTED:
+        state.CAMERA_STATUS = "disconnected"
         state.CAMERA_URL = None
         state.camera_event.set()  
 
-    elif response.status == CameraResponse.REJECTED:
-        state.CAMERA_STATUS = CameraResponse.REJECTED 
+    elif response.status == CameraRequestStatus.REJECTED:
+        state.CAMERA_STATUS = "rejected"
         state.CAMERA_URL = None
         state.camera_event.set()  
 

@@ -6,6 +6,16 @@
   padding: 0;
 }
 
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Chakra Petch', sans-serif;
+}
+
 /* DARK THEME (default) */
 .app.dark {
   --bg:    #0a0e1a;
@@ -20,7 +30,7 @@
   --grn:   #22c55e;
   --t1:    #e2eaf5;
   --t2:    #9acdd6;
-  --t3:    #9acdd6; 
+  --t3:    #9acdd6;
 }
 
 /* LIGHT THEME */
@@ -40,20 +50,16 @@
   --t3:    #5a6e85;
 }
 
-body {
-  font-family: 'Chakra Petch', sans-serif;
-}
-
 .app {
   background: var(--bg);
   color: var(--t1);
-  min-height: 100vh;
+  height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   padding: 16px;
   gap: 12px;
-  max-width: 1400px;
-  margin: 0 auto;
+  overflow: hidden;
   transition: background 0.2s, color 0.2s;
 }
 
@@ -62,12 +68,16 @@ body {
   grid-template-columns: 1fr 250px;
   gap: 12px;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .side-panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panel {
@@ -87,12 +97,30 @@ body {
   border-bottom: 1px solid var(--bdr);
 }
 
+.display-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.viz-area {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 @keyframes blink {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0; }
 }
 
 ::selection {
-  background: transparent;  /* or any color you want */
+  background: transparent;
   color: inherit;
 }

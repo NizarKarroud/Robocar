@@ -102,7 +102,7 @@ def handle_control_camera_request(raw: dict, client: mqtt_client.Client, CAR_ID:
         if request_type == "connection" and state.CLIENT_ID == client_id :
             services.camera_stream.start()
             print("connected")
-            status = "connected"
+            status = "accepted"
 
         elif request_type == "disconnection" and state.CLIENT_ID == client_id :
             status = "disconnected"
@@ -119,11 +119,13 @@ def handle_control_camera_request(raw: dict, client: mqtt_client.Client, CAR_ID:
         SECRET_KEY=SECRET_KEY,
         payload={
             "status": status,
-            "car_ip" : get_local_ip() if status == "connected" else "",
-            "path" : "/video" if status == "connected" else "",
+            "car_ip" : get_local_ip() if status == "accepted" else "",
+            "port" : "8765",
+            "path" : "/video" if status == "accepted" else "",
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
     )
+    print("done")
 
 TOPIC_HANDLERS = {
     "control/request": handle_control_request,

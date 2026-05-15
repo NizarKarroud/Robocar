@@ -1,5 +1,10 @@
 from fastapi import APIRouter , Depends
 import asyncio
+
+import httpx
+from fastapi.responses import StreamingResponse
+
+
 from app.utils.tls import get_cert_and_key
 from app import state   
 from app.schemas.car import CameraRequest , CameraResponse , CameraRequestStatus
@@ -31,10 +36,29 @@ async def control_request(
         return {"status": "timeout", "message": "Car did not respond"}
 
     if state.CAMERA_STATUS == CameraRequestStatus.ACCEPTED:
-        return {"status": f"{CameraRequestStatus.ACCEPTED}", "message": "Camera ON" , "url" : f"{state.CAMERA_URL}"}
+        return {"status": CameraRequestStatus.ACCEPTED.value, "message": "Camera ON" , "url" : f"{state.CAMERA_URL}"}
     
     elif state.CAMERA_STATUS == CameraRequestStatus.DISCONNECTED:
-        return {"status": f"{CameraRequestStatus.DISCONNECTED}", "message": "Camera OFF" }
+        return {"status": CameraRequestStatus.DISCONNECTED.value, "message": "Camera OFF" }
 
     elif state.CAMERA_STATUS == CameraRequestStatus.REJECTED:
-        return {"status": f"{CameraRequestStatus.REJECTED}", "message": "Camera request rejected" }
+        return {"status": CameraRequestStatus.REJECTED.value, "message": "Camera request rejected" }
+
+
+@router.get("/stream")
+async def camera_stream():
+    cert_path, key_path, ca_file = get_cert_and_key()
+    print(state.CAMERA_URL)
+    async def generate():
+        async with httpx.AsyncClient(
+            cert=(cert_path, key_path),
+            verify=False
+        ) as client:
+            async with client.stream("GET", state.CAMERA_URL) as response:
+                async for chunk in response.aiter_bytes():
+                    yield chunk
+
+    return StreamingResponse(
+        generate(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )

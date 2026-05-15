@@ -118,3 +118,67 @@
 .tire--back  { grid-column: 2; grid-row: 3; }
 .tire--left  { grid-column: 1; grid-row: 2; }
 .tire--right { grid-column: 3; grid-row: 2; }
+
+
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 6px 0;
+  background: transparent;
+  border: 1px solid var(--t3);
+  border-radius: 6px;
+  color: var(--t2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #000;
+}
+
+.cam-view {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cam-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0 6px;
+}
+
+.cam-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--t3);
+  transition: background 0.3s;
+}
+
+.cam-dot.live {
+  background: var(--grn);
+}
+
+.cam-status-text {
+  font-size: 11px;
+  color: var(--t2);
+}
+
+.cam-img {
+  width: 100%;
+  flex: 1;
+  object-fit: contain;
+  border-radius: 6px;
+}

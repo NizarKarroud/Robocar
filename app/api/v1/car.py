@@ -4,7 +4,7 @@ import json , asyncio
 from paho.mqtt import client as mqtt_client
 
 from app import state
-from app.schemas.car import  ConnectionRequest , ConnectionRequestMQTT
+from app.schemas.car import  ConnectionRequest , ConnectionRequestMQTT , CommandFollowLine
 from app.api.deps import get_mqtt_client 
 from app.services.mqtt import sign_and_publish
 
@@ -43,4 +43,18 @@ async def control_request(
         return {"status": "connected"}
     else:
         return {"status": "rejected"}
+
+@router.post("/control/command/follow/line")
+async def control_request(
+    payload: CommandFollowLine,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+
+    payload.client_id = state.CLIENT_ID
+    sign_and_publish(
+        client=client,
+        topic=f"car/{state.CAR_ID}/control/command/follow/line",
+        payload=payload,
+        SECRET_KEY=state.active_key.encode()
+    )
 

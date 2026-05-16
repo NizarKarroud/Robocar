@@ -68,7 +68,7 @@ class StreamHandler(BaseHTTPRequestHandler):
                 _, jpg = cv2.imencode(
                     ".jpg",
                     frame,
-                    [cv2.IMWRITE_JPEG_QUALITY, 70]
+                    [cv2.IMWRITE_JPEG_QUALITY, 40]
                 )
 
                 self.wfile.write(b"--frame\r\n")

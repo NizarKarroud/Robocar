@@ -84,18 +84,15 @@ def handle_control_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
         }
     )
 
-def handle_control_command(raw: dict, client: mqtt_client.Client, CAR_ID: str):
-    ...
-
 def handle_control_camera_request(raw: dict, client: mqtt_client.Client, CAR_ID: str):
 
     validity = verify_signature(raw["data"], raw["signature"])
-    print(validity)
     
     if not validity:
         status = "rejected" 
     else :
         request_type = raw["data"].get("request")
+        
         client_id = raw["data"].get("client_id")
         print(client_id , state.CLIENT_ID)
 
@@ -127,8 +124,31 @@ def handle_control_camera_request(raw: dict, client: mqtt_client.Client, CAR_ID:
     )
     print("done")
 
+
+def handle_control_command_follow_line(raw: dict, client: mqtt_client.Client, CAR_ID: str ):
+    validity = verify_signature(raw["data"], raw["signature"])
+
+    if not validity:
+        print("nope2")
+
+        return
+    client_id = raw["data"].get("client_id")
+
+    if client_id != state.CLIENT_ID:
+        print("nope")
+        return
+
+    action = raw["data"].get("action")  
+
+    if action == "stop":
+        state.command_event.set()
+
+    elif action == "start":
+        state.command_event.set()
+        state.command_queue.put("follow_line")
+
 TOPIC_HANDLERS = {
     "control/request": handle_control_request,
-    "control/command" : handle_control_command,
+    "control/command/follow/line" : handle_control_command_follow_line,
     "control/camera/request" : handle_control_camera_request ,
 }

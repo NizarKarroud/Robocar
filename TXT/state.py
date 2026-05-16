@@ -1,1 +1,7 @@
+
+import queue  , threading
+
 CLIENT_ID = None
+current_command = None     
+command_event = threading.Event()  
+command_queue = queue.Queue()

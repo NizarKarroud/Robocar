@@ -22,6 +22,10 @@ async def control_request(
     payload: CameraRequest,
     client: mqtt_client.Client = Depends(get_mqtt_client)
 ):
+    
+    state.camera_event.clear()  
+    state.CAMERA_STATUS = None  
+
     payload.client_id = state.CLIENT_ID
     sign_and_publish(
         client=client,

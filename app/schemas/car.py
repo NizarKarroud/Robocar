@@ -49,3 +49,9 @@ class CameraResponse(BaseModel):
     port : Optional[str] = None
     path: Optional[str] = None
     timestamp: datetime 
+
+
+class CommandFollowLine(BaseModel):
+    action : str
+    client_id: str = ""
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -14,17 +14,17 @@ from stream import CameraStreamServer
 from mqtt import connect_mqtt
 
 motors_dict = {
-    'M1':  AG_M_M1_encodermotor,
-    'M2':  AG_M_M2_encodermotor,
-    'M3':  AG_M_M3_encodermotor,
-    'M4':  AG_M_M4_encodermotor,
+    'M1':  TXT_M_M1_encodermotor,
+    'M2':  TXT_M_M2_encodermotor,
+    'M3':  TXT_M_M3_encodermotor,
+    'M4':  TXT_M_M4_encodermotor,
     'CW':  Motor.CW,
     'CCW': Motor.CCW,
 }
 
 trail_sensors_dict = {
-    'left':  AG_M_I7_trail_follower,
-    'right': AG_M_I8_trail_follower,
+    'left':  TXT_M_I7_trail_follower,
+    'right': TXT_M_I8_trail_follower,
 }
 
 COMMAND_MAP = {

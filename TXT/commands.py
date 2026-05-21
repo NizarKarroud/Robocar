@@ -9,6 +9,7 @@ def stop_motors(motors_dict):
     m['M3'].set_speed(0, m['CW'])
     m['M4'].set_speed(0, m['CW'])
     m['M1'].start_sync(m['M2'], m['M3'], m['M4'])
+   
 
 
 def motors_run(motors_dict, left_speed, right_speed):
@@ -57,5 +58,5 @@ def run_follow_line(motors_dict, trail_sensors_dict):
 
         time.sleep(0.01)
 
-    # stop_motors(motors_dict)
+    stop_motors(motors_dict)
     print("Line follow stopped")

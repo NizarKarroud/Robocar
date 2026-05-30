@@ -1,61 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { requestCamera, CAMERA_STREAM_URL } from "../../services/api";
 import "./DisplayScreen.css";
 
-const API = "http://localhost:8000/api/v1/camera";
-
 export default function DisplayScreen({ robotState }) {
-  const [activeTab, setActiveTab] = useState("3d");
-  const [camState, setCamState]   = useState("idle");
+  const [camState,  setCamState]  = useState("idle");
   const [streamUrl, setStreamUrl] = useState(null);
-  const [errorMsg, setErrorMsg]   = useState("");
+  const [errorMsg,  setErrorMsg]  = useState("");
 
   const speed    = robotState.speed;
   const barColor = speed > 70 ? "var(--red)" : speed > 40 ? "var(--amb)" : "var(--cyan)";
 
-  function tireColor(val) {
-    if (val >= 301) return "var(--grn)";
-    if (val >= 101) return "#aebf43";
-    if (val >= 21)  return "#ffa41cc0";
-    return "var(--red)";
-  }
-
-  async function requestCamera() {
+  async function connectCamera() {
     setCamState("requesting");
     setErrorMsg("");
     setStreamUrl(null);
 
     try {
-      const res = await fetch(`${API}/request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request: "connection" }),
-      });
-
-      const data = await res.json();
+      const data = await requestCamera("connection");
 
       if (data.status === "accepted") {
-        setStreamUrl(`${API}/stream`);
+        // Use the proxied stream endpoint (backend relays the car's TLS stream)
+        setStreamUrl(CAMERA_STREAM_URL);
         setCamState("live");
       } else {
         setCamState("error");
         setErrorMsg(data.message || "Request rejected");
       }
-    } catch (e) {
+    } catch (err) {
       setCamState("error");
       setErrorMsg("Server unreachable");
     }
   }
 
-  function handleTabChange(tab) {
-    if (tab === activeTab) return;
-    if (tab === "camera" && camState === "idle") {
-      requestCamera();
+  async function disconnectCamera() {
+    try {
+      await requestCamera("disconnection");
+    } catch {
+      // best-effort
     }
-    setActiveTab(tab);
+    setStreamUrl(null);
+    setCamState("idle");
   }
+
+  useEffect(() => {
+    connectCamera();
+    return () => {
+      // Disconnect camera cleanly when component unmounts
+      requestCamera("disconnection").catch(() => {});
+    };
+  }, []);
 
   return (
     <section className="display-screen panel">
+
+      {/* Speed strip */}
       <div className="speed-strip">
         <span className="spd-num" style={{ color: barColor }}>{speed}</span>
         <span className="spd-unit">KM/H</span>
@@ -64,90 +62,45 @@ export default function DisplayScreen({ robotState }) {
         </div>
       </div>
 
-      <div className="tab-bar">
-        <button
-          className={`tab-btn ${activeTab === "3d" ? "active" : ""}`}
-          onClick={() => handleTabChange("3d")}
-        >
-          3D View
-        </button>
-        <button
-          className={`tab-btn ${activeTab === "camera" ? "active" : ""}`}
-          onClick={() => handleTabChange("camera")}
-        >
-          Camera
-        </button>
-      </div>
-
-      <div className="viz-area">
-        {activeTab === "3d" && (
-          <>
-            <div className="tire-overlay">
-              <div className="tire tire--front" style={{ color: tireColor(robotState.tirePressure.fl) }}>{robotState.tirePressure.fl}</div>
-              <div className="tire tire--left"  style={{ color: tireColor(robotState.tirePressure.fr) }}>{robotState.tirePressure.fr}</div>
-              <div className="tire tire--right" style={{ color: tireColor(robotState.tirePressure.rl) }}>{robotState.tirePressure.rl}</div>
-              <div className="tire tire--back"  style={{ color: tireColor(robotState.tirePressure.rr) }}>{robotState.tirePressure.rr}</div>
-              <svg className="car-svg" viewBox="0 0 60 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="8"  y="10" width="44" height="80" rx="10" stroke="var(--t2)" strokeWidth="1.5"/>
-                <rect x="14" y="22" width="32" height="30" rx="6"  stroke="var(--t2)" strokeWidth="1.2"/>
-                <line x1="14" y1="34" x2="46" y2="34" stroke="var(--t3)" strokeWidth="0.8"/>
-                <rect x="2"  y="14" width="8"  height="16" rx="3" fill="var(--t3)"/>
-                <rect x="50" y="14" width="8"  height="16" rx="3" fill="var(--t3)"/>
-                <rect x="2"  y="70" width="8"  height="16" rx="3" fill="var(--t3)"/>
-                <rect x="50" y="70" width="8"  height="16" rx="3" fill="var(--t3)"/>
-                <rect x="14" y="11" width="10" height="4"  rx="2" fill="var(--cyan)" opacity="0.7"/>
-                <rect x="36" y="11" width="10" height="4"  rx="2" fill="var(--cyan)" opacity="0.7"/>
-                <rect x="14" y="85" width="10" height="4"  rx="2" fill="var(--red)"  opacity="0.7"/>
-                <rect x="36" y="85" width="10" height="4"  rx="2" fill="var(--red)"  opacity="0.7"/>
-              </svg>
-            </div>
-            <div className="viz-inner">
-              <div className="viz-icon">◈</div>
-              <p className="viz-label">3D Visualization</p>
-              <p className="viz-hint">React Three Fiber goes here</p>
-            </div>
-          </>
+      {/* Camera feed */}
+       <div className="cam-section">
+        {/* Status dot — only visible when NOT live */}
+        {camState !== "live" && (
+          <div className="cam-header">
+            <span className="cam-dot" />
+            <span className="cam-status-text">
+              {camState === "requesting" && "Connecting..."}
+              {camState === "error"      && `Error: ${errorMsg}`}
+              {camState === "idle"       && "Idle"}
+            </span>
+          </div>
         )}
-
-        {activeTab === "camera" && (
-          <div className="cam-view">
-            <div className="cam-status">
-              <span className={`cam-dot ${camState === "live" ? "live" : ""}`} />
-              <span className="cam-status-text">
-                {camState === "requesting" && "Connecting..."}
-                {camState === "live"       && "Live"}
-                {camState === "error"      && `Error: ${errorMsg}`}
-                {camState === "idle"       && "Idle"}
-              </span>
-              {camState === "error" && (
-                <button className="cam-disconnect" onClick={requestCamera}>
-                  Retry
+ 
+        <div className="cam-body">
+          {camState === "live" && streamUrl && (
+            <img
+              src={streamUrl}
+              alt="Camera feed"
+              className="cam-img"
+              onError={() => { setCamState("error"); setErrorMsg("Stream lost"); }}
+            />
+          )}
+          {camState === "requesting" && (
+            <div className="cam-placeholder">
+              <p>Waiting for car response...</p>
+            </div>
+          )}
+          {(camState === "error" || camState === "idle") && (
+            <div className="cam-placeholder">
+              {camState === "error" && <p className="cam-err-msg">{errorMsg}</p>}
+              {connected && (
+                <button className="cam-retry-btn" onClick={connectCamera}>
+                  {camState === "error" ? "↺ Retry" : "▶ Connect"}
                 </button>
               )}
             </div>
-
-            {camState === "live" && streamUrl && (
-              <img
-                src={streamUrl}
-                alt="Camera feed"
-                className="cam-img"
-                onError={() => { setCamState("error"); setErrorMsg("Stream lost"); }}
-              />
-            )}
-
-            {camState === "requesting" && (
-              <div className="cam-placeholder">
-                <p>Waiting for car response...</p>
-              </div>
-            )}
-
-            {camState === "error" && (
-              <div className="cam-placeholder">
-                <p>{errorMsg}</p>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );

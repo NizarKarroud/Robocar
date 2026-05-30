@@ -1,14 +1,17 @@
 .display-screen {
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
+/* ── Speed strip ─────────────────────────────────── */
 .speed-strip {
   display: flex;
   align-items: center;
   gap: 14px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--bdr);
+  flex-shrink: 0;
 }
 
 .spd-num {
@@ -44,119 +47,21 @@
   transition: width 0.25s, background 0.2s;
 }
 
-.viz-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  min-height: 360px;
-}
-
-.viz-inner {
-  text-align: center;
-}
-
-.viz-icon {
-  font-size: 36px;
-  color: #9acdd6;
-  margin-bottom: 8px;
-}
-
-.viz-label {
-  font-family: 'Chakra Petch', sans-serif;
-  font-size: 13px;
-  color: var(--t3);
-}
-
-.viz-hint {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  color: var(--t3);
-  opacity: 0.5;
-  margin-top: 4px;
-  letter-spacing: 0.08em;
-}
-
-
-.viz-area {
-  position: relative; 
-}
-
-.tire-overlay {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: grid;
-  grid-template-columns: 22px 44px 22px;
-  grid-template-rows: 16px 74px 16px;
-  gap: 3px;
-  align-items: center;
-  justify-items: center;
-  background: var(--bg2);
-  border: 1px solid var(--bdr);
-  border-radius: 8px;
-  padding: 8px;
-  opacity: 0.85;
-}
-
-.car-svg {
-  grid-column: 2;
-  grid-row: 1 / 4;
-  width: 44px;
-  height: 74px;
-  align-self: center;
-}
-
-.tire {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.tire--front { grid-column: 2; grid-row: 1; }
-.tire--back  { grid-column: 2; grid-row: 3; }
-.tire--left  { grid-column: 1; grid-row: 2; }
-.tire--right { grid-column: 3; grid-row: 2; }
-
-
-.tab-bar {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.tab-btn {
-  flex: 1;
-  padding: 6px 0;
-  background: transparent;
-  border: 1px solid var(--t3);
-  border-radius: 6px;
-  color: var(--t2);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tab-btn.active {
-  background: var(--cyan);
-  border-color: var(--cyan);
-  color: #000;
-}
-
-.cam-view {
-  position: relative;
-  width: 100%;
-  height: 100%;
+/* ── Camera section ──────────────────────────────── */
+.cam-section {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
-.cam-status {
+.cam-header {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 0 6px;
+  padding: 6px 14px;
+  border-bottom: 1px solid var(--bdr);
+  flex-shrink: 0;
 }
 
 .cam-dot {
@@ -165,20 +70,85 @@
   border-radius: 50%;
   background: var(--t3);
   transition: background 0.3s;
+  flex-shrink: 0;
 }
 
 .cam-dot.live {
   background: var(--grn);
+  box-shadow: 0 0 6px var(--grn);
+  animation: blink 2s infinite;
 }
 
 .cam-status-text {
-  font-size: 11px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
   color: var(--t2);
+  letter-spacing: 0.08em;
+  flex: 1;
+}
+
+.cam-disconnect-btn {
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--red);
+  border-radius: 4px;
+  color: var(--red);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cam-disconnect-btn:hover {
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+}
+
+.cam-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  overflow: hidden;
 }
 
 .cam-img {
   width: 100%;
-  flex: 1;
+  height: 100%;
   object-fit: contain;
   border-radius: 6px;
+}
+
+.cam-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.cam-placeholder p {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  color: var(--t3);
+}
+
+.cam-err-msg {
+  color: var(--red) !important;
+}
+
+.cam-retry-btn {
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  border-radius: 6px;
+  color: var(--cyan);
+  font-family: 'Chakra Petch', sans-serif;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cam-retry-btn:hover {
+  background: var(--cyanm);
 }

@@ -1,8 +1,20 @@
 import "./Toolbar.css";
 
-export default function Toolbar({ mode, setMode, dispatch }) {
-  const isAuto = mode !== "manual";
+export default function Toolbar({ mode, setMode, dispatch, connected }) {
+  const isAuto    = mode !== "manual";
   const isRunning = mode === "running";
+
+  // Nothing works before login
+  if (!connected) {
+    return (
+      <nav className="toolbar panel toolbar--locked">
+        <button className="tbtn tbtn--primary tbtn--disabled"  disabled>▶ Start</button>
+        <button className="tbtn tbtn--danger  tbtn--disabled"  disabled>■ Stop</button>
+        <button className="tbtn tbtn--ghost   tbtn--disabled"  disabled>↩ Replay</button>
+        <button className="tbtn tbtn--ghost   tbtn--disabled"  disabled>⟳ Follow Line</button>
+      </nav>
+    );
+  }
 
   return (
     <nav className="toolbar panel">
@@ -13,6 +25,7 @@ export default function Toolbar({ mode, setMode, dispatch }) {
       >
         ▶ Start
       </button>
+
       <button
         className={`tbtn tbtn--danger ${!isAuto || !isRunning ? "tbtn--disabled" : ""}`}
         disabled={!isAuto || !isRunning}
@@ -20,8 +33,20 @@ export default function Toolbar({ mode, setMode, dispatch }) {
       >
         ■ Stop
       </button>
-      <button className="tbtn tbtn--ghost" onClick={() => dispatch({ type: "REPLAY" })}>
+
+      <button
+        className="tbtn tbtn--ghost"
+        onClick={() => dispatch({ type: "REPLAY" })}
+      >
         ↩ Replay
+      </button>
+
+      <button
+        className={`tbtn tbtn--ghost ${isRunning ? "tbtn--disabled" : ""}`}
+        disabled={isRunning}
+        onClick={() => dispatch({ type: "FOLLOW_LINE" })}
+      >
+        ⟳ Follow Line
       </button>
     </nav>
   );

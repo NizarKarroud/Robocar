@@ -1,9 +1,8 @@
 import "./StatusBar.css";
 
-export default function StatusBar({ mode }) {
-  const isRunning = mode === "running";
-  const isAuto = mode !== "manual";
-  const canGenerate = !isRunning;
+export default function StatusBar({ mode, connected }) {
+  const isRunning  = mode === "running";
+  const canGenerate = connected && !isRunning;
 
   return (
     <div className="panel">

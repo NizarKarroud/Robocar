@@ -25,11 +25,7 @@
   letter-spacing: 0.08em;
   transition: all 0.15s;
 }
-
-.theme-btn:hover {
-  border-color: var(--cyan);
-  color: var(--cyan);
-}
+.theme-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 
 .header-right {
   display: flex;
@@ -50,15 +46,28 @@
   letter-spacing: 0.08em;
   transition: all 0.15s;
 }
-.login-btn:hover {
-  background: var(--cyanm);
-}
+.login-btn:hover { background: var(--cyanm); }
 
-/* Modal */
+.logout-btn {
+  background: transparent;
+  border: 1.5px solid var(--red);
+  border-radius: 7px;
+  cursor: pointer;
+  padding: 6px 14px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--red);
+  letter-spacing: 0.08em;
+  transition: all 0.15s;
+}
+.logout-btn:hover { background: color-mix(in srgb, var(--red) 12%, transparent); }
+
+/* ── Modal ─────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0,0,0,0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -99,7 +108,15 @@
   outline: none;
   transition: border-color 0.15s;
 }
-.modal-input:focus { border-color: var(--cyan); }
+.modal-input:focus   { border-color: var(--cyan); }
+.modal-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modal-error {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px;
+  color: var(--red);
+  letter-spacing: 0.05em;
+}
 .modal-actions {
   display: flex;
   gap: 8px;
@@ -117,7 +134,10 @@
   font-weight: 700;
   cursor: pointer;
   letter-spacing: 0.08em;
+  transition: opacity 0.15s;
 }
+.modal-submit--loading,
+.modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
 .modal-cancel {
   flex: 1;
   background: transparent;

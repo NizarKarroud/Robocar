@@ -107,9 +107,37 @@
   font-size: 12px;
   outline: none;
   transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
 }
 .modal-input:focus   { border-color: var(--cyan); }
 .modal-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Row that holds the password input + eye button */
+.modal-input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.modal-input--grow {
+  flex: 1;
+  width: auto;   /* override the 100% width when inside the row */
+}
+
+/* Eye toggle button */
+.eye-btn {
+  background: var(--bg3);
+  border: 1.5px solid var(--bdr);
+  border-radius: 6px;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--t2);
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.eye-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 
 .modal-error {
   font-family: 'Share Tech Mono', monospace;

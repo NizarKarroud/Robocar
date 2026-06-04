@@ -3,11 +3,12 @@ import { requestConnection } from "../../services/api";
 import "./Header.css";
 
 export default function Header({ darkMode, toggleTheme, connected, onConnected, onLogout }) {
-  const [showLogin, setShowLogin] = useState(false);
-  const [carId,     setCarId]     = useState("");
-  const [carKey,    setCarKey]    = useState("");
-  const [status,    setStatus]    = useState("idle"); // idle | loading | error
-  const [errorMsg,  setErrorMsg]  = useState("");
+  const [showLogin,    setShowLogin]    = useState(false);
+  const [carId,        setCarId]        = useState("");
+  const [carKey,       setCarKey]       = useState("");
+  const [showPassword, setShowPassword] = useState(false);   // ← eye toggle
+  const [status,       setStatus]       = useState("idle");  // idle | loading | error
+  const [errorMsg,     setErrorMsg]     = useState("");
 
   async function handleConnect() {
     if (!carId.trim() || !carKey.trim()) {
@@ -24,6 +25,7 @@ export default function Header({ darkMode, toggleTheme, connected, onConnected, 
         setShowLogin(false);
         setCarId("");
         setCarKey("");
+        setShowPassword(false);
         onConnected({ carId: carId.trim() });
       } else if (data.status === "timeout") {
         setStatus("error");
@@ -42,6 +44,7 @@ export default function Header({ darkMode, toggleTheme, connected, onConnected, 
     setShowLogin(false);
     setStatus("idle");
     setErrorMsg("");
+    setShowPassword(false);
   }
 
   return (
@@ -83,15 +86,27 @@ export default function Header({ darkMode, toggleTheme, connected, onConnected, 
             />
 
             <label className="modal-label">KEY</label>
-            <input
-              className="modal-input"
-              type="password"
-              placeholder="Enter key"
-              value={carKey}
-              onChange={e => setCarKey(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleConnect()}
-              disabled={status === "loading"}
-            />
+            {/* Password row: input + eye toggle side by side */}
+            <div className="modal-input-row">
+              <input
+                className="modal-input modal-input--grow"
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter key"
+                value={carKey}
+                onChange={e => setCarKey(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleConnect()}
+                disabled={status === "loading"}
+              />
+              <button
+                type="button"
+                className="eye-btn"
+                onClick={() => setShowPassword(v => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? "x" : "👁"}
+              </button>
+            </div>
 
             {status === "error" && (
               <p className="modal-error">{errorMsg}</p>

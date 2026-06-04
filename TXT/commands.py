@@ -25,14 +25,6 @@ def stop_motors(motors_dict):
 
 
 def motors_mecanum(motors_dict, fl, fr, rl, rr):
-    """
-    Low-level Mecanum drive.
-    fl = front-left  (M1)
-    fr = front-right (M2)  ← has hardware boost
-    rl = rear-left   (M3)
-    rr = rear-right  (M4)
-    Positive = forward, negative = backward. Range: -512 to 512.
-    """
     M2_BOOST = 30
     m = motors_dict
 
@@ -48,28 +40,11 @@ def motors_mecanum(motors_dict, fl, fr, rl, rr):
     m['M4'].start()
     
 def motors_run(motors_dict, left_speed, right_speed):
-    """Legacy 2-wheel-style drive, kept for line follower."""
     motors_mecanum(motors_dict, left_speed, right_speed, left_speed, right_speed)
 
 
-# ── Kinematic model (eq. 1.20 from document) ─────────────────────────────────
-# ω_wheels = H · u,   u = [vx, vy, ω]
-#
-#        1  [ 1   -1  -(LX+LY) ] [vx]
-# ωi = ─── [ 1    1   (LX+LY) ] [vy]
-#        R  [ 1    1  -(LX+LY) ] [ω ]
-#           [ 1   -1   (LX+LY) ]
-#
-# Returns wheel speeds [w1_fr, w2_fl, w3_rl, w4_rr] in cm/s
 
 def compute_wheel_speeds(vx, vy, omega):
-    """
-    Compute individual wheel speeds from desired robot velocity.
-    vx    : forward velocity  (cm/s)
-    vy    : lateral velocity  (cm/s, positive = right)
-    omega : rotational speed  (rad/s, positive = CCW)
-    Returns (fr, fl, rl, rr) in cm/s.
-    """
     k = LX + LY  # 20.3 cm
     w1_fr = (1 / R) * ( vx - vy - k * omega)
     w2_fl = (1 / R) * ( vx + vy + k * omega)
@@ -79,7 +54,6 @@ def compute_wheel_speeds(vx, vy, omega):
 
 
 def _scale_to_pwm(wheel_speeds, max_pwm=512):
-    """Scale cm/s wheel speeds to PWM range [-512, 512]."""
     max_speed = max(abs(w) for w in wheel_speeds)
     if max_speed == 0:
         return (0, 0, 0, 0)
@@ -88,14 +62,6 @@ def _scale_to_pwm(wheel_speeds, max_pwm=512):
 
 
 def drive(motors_dict, vx, vy, omega, max_pwm=512):
-    """
-    High-level kinematic drive.
-    Computes wheel speeds from (vx, vy, omega) and sends to motors.
-    vx    : forward  (+) / backward (-)
-    vy    : strafe right (+) / left (-)
-    omega : rotate CCW (+) / CW (-)
-    max_pwm: scales output to this PWM ceiling (default 512)
-    """
     speeds = compute_wheel_speeds(vx, vy, omega)
     fr, fl, rl, rr = _scale_to_pwm(speeds, max_pwm)
     motors_mecanum(motors_dict, fl, fr, rl, rr)
@@ -143,60 +109,17 @@ def arc_turn_left(motors_dict, speed=260, turn_ratio=0.5):
 # ── Timed helper ──────────────────────────────────────────────────────────────
 
 def move_for_seconds(fn, motors_dict, duration, **kwargs):
-    """
-    Run any movement function for `duration` seconds then stop.
-    Usage: move_for_seconds(move_forward, motors_dict, 2.0, speed=300)
-    """
     fn(motors_dict, **kwargs)
     time.sleep(duration)
     stop_motors(motors_dict)
 
 
 # ── Line follower (unchanged) ─────────────────────────────────────────────────
-
-# def run_follow_line(motors_dict, trail_sensors_dict):
-#     BASE_SPEED       = 260
-#     TURN_DELTA_RIGHT = 120
-#     TURN_DELTA_LEFT  = 160
-#     RECOVER_SPEED    = 180
-
-#     print("Starting line follow")
-#     state.command_event.clear()
-
-#     last_direction = 0
-
-#     while not state.command_event.is_set():
-#         i7 = trail_sensors_dict['left'].get_state()
-#         i8 = trail_sensors_dict['right'].get_state()
-
-#         if i7 == 0 and i8 == 0:
-#             motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
-
-#         elif i7 == 0 and i8 == 1:
-#             motors_run(motors_dict, BASE_SPEED - TURN_DELTA_LEFT, BASE_SPEED + TURN_DELTA_LEFT)
-#             last_direction = 1
-
-#         elif i7 == 1 and i8 == 0:
-#             motors_run(motors_dict, BASE_SPEED + TURN_DELTA_RIGHT, BASE_SPEED - TURN_DELTA_RIGHT)
-#             last_direction = -1
-
-#         else:
-#             if last_direction >= 0:
-#                 motors_run(motors_dict, -RECOVER_SPEED, RECOVER_SPEED)
-#             else:
-#                 motors_run(motors_dict, RECOVER_SPEED, -RECOVER_SPEED)
-
-#         time.sleep(0.01)
-
-#     stop_motors(motors_dict)
-#     print("Line follow stopped")
-
-
 def run_follow_line(motors_dict, trail_sensors_dict):
-    BASE_SPEED       = 220
-    TURN_DELTA_RIGHT = 100
-    TURN_DELTA_LEFT  = 100
-    RECOVER_SPEED    = 150
+    BASE_SPEED       = 300    # un peu moins vite = plus stable
+    TURN_DELTA_RIGHT = 110    # correction plus douce
+    TURN_DELTA_LEFT  = 130    # correction plus douce
+    RECOVER_SPEED    = 200    # recovery plus douce
 
     print("Starting line follow")
     state.command_event.clear()
@@ -207,31 +130,66 @@ def run_follow_line(motors_dict, trail_sensors_dict):
         i7 = trail_sensors_dict['left'].get_state()
         i8 = trail_sensors_dict['right'].get_state()
 
-        # 0 = noir (sur la ligne), 1 = blanc (hors ligne)
-        if i7 == 1 and i8 == 1:
-            # centre sur la ligne
+        if i7 == 0 and i8 == 0:
             motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
 
-        elif i7 == 1 and i8 == 0:
-            # droite hors ligne -> tourne droite
-            motors_run(motors_dict, BASE_SPEED + TURN_DELTA_RIGHT, BASE_SPEED - TURN_DELTA_RIGHT)
+        elif i7 == 0 and i8 == 1:
+            motors_run(motors_dict, BASE_SPEED - TURN_DELTA_LEFT, BASE_SPEED + TURN_DELTA_LEFT)
             last_direction = 1
 
-        elif i7 == 0 and i8 == 1:
-            # gauche hors ligne -> tourne gauche
-            motors_run(motors_dict, BASE_SPEED - TURN_DELTA_LEFT, BASE_SPEED + TURN_DELTA_LEFT)
+        elif i7 == 1 and i8 == 0:
+            motors_run(motors_dict, BASE_SPEED + TURN_DELTA_RIGHT, BASE_SPEED - TURN_DELTA_RIGHT)
             last_direction = -1
 
         else:
-            # les deux hors ligne -> recuperation dans la derniere direction connue
-            if last_direction > 0:
-                motors_run(motors_dict, RECOVER_SPEED, -RECOVER_SPEED)
-            elif last_direction < 0:
+            if last_direction >= 0:
                 motors_run(motors_dict, -RECOVER_SPEED, RECOVER_SPEED)
             else:
-                motors_run(motors_dict, 0, 0)
+                motors_run(motors_dict, RECOVER_SPEED, -RECOVER_SPEED)
 
-        time.sleep(0.01)
+        time.sleep(0.015)    # un peu plus de temps entre chaque lecture
 
     stop_motors(motors_dict)
     print("Line follow stopped")
+
+
+def run_follow_wall(motors_dict, dist_sensor_side, dist_sensor_front, target_dist=15.0):
+    BASE_SPEED   = 220
+    TURN_DELTA   = 65     # un peu plus fort qu'avant
+    MARGIN_CLOSE = 3.0
+    MARGIN_FAR   = 3.0
+    FRONT_DIST   = 40.0   # cm, seuil obstacle devant
+
+    print("Starting wall follow")
+    state.command_event.clear()
+
+    while not state.command_event.is_set():
+        dist       = dist_sensor_side.get_distance()
+        dist_front = dist_sensor_front.get_distance()
+
+        # --- obstacle devant -> tourne a gauche mais reste a droite ---
+        if dist_front < FRONT_DIST:
+            motors_run(motors_dict,
+                       BASE_SPEED - TURN_DELTA,
+                       BASE_SPEED + TURN_DELTA)
+
+        # --- trop proche du mur ---
+        elif dist < target_dist - MARGIN_CLOSE:
+            motors_run(motors_dict,
+                       BASE_SPEED - TURN_DELTA,
+                       BASE_SPEED + TURN_DELTA)
+
+        # --- trop loin du mur ---
+        elif dist > target_dist + MARGIN_FAR:
+            motors_run(motors_dict,
+                       BASE_SPEED + TURN_DELTA,
+                       BASE_SPEED - TURN_DELTA)
+
+        # --- bonne distance ---
+        else:
+            motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
+
+        time.sleep(0.015)
+
+    stop_motors(motors_dict)
+    print("Wall follow stopped")

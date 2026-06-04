@@ -1,53 +1,77 @@
+import { sendFollowLineCommand } from "../../services/api";
 import "./Toolbar.css";
 
 export default function Toolbar({ mode, setMode, dispatch, connected }) {
-  const isAuto    = mode !== "manual";
-  const isRunning = mode === "running";
+  const isRunning    = mode === "running";
+  const isFollowing  = mode === "following";
+  const isManual     = mode === "manual";
 
   // Nothing works before login
   if (!connected) {
     return (
       <nav className="toolbar panel toolbar--locked">
-        <button className="tbtn tbtn--primary tbtn--disabled"  disabled>▶ Start</button>
-        <button className="tbtn tbtn--danger  tbtn--disabled"  disabled>■ Stop</button>
-        <button className="tbtn tbtn--ghost   tbtn--disabled"  disabled>↩ Replay</button>
-        <button className="tbtn tbtn--ghost   tbtn--disabled"  disabled>⟳ Follow Line</button>
+        <button className="tbtn tbtn--primary tbtn--disabled" disabled>▶ Start</button>
+        <button className="tbtn tbtn--danger  tbtn--disabled" disabled>■ Stop</button>
+        <button className="tbtn tbtn--ghost   tbtn--disabled" disabled>↩ Replay</button>
+        <button className="tbtn tbtn--ghost   tbtn--disabled" disabled>⟳ Follow Line</button>
       </nav>
     );
   }
 
+  // ── Start / Stop: single toggle button ───────────────────────────────────
+  function handleStartStop() {
+    if (isRunning) {
+      dispatch({ type: "STOP" });
+      setMode("idle");
+    } else {
+      dispatch({ type: "START" });
+      setMode("running");
+    }
+  }
+
+  // ── Follow Line: same button toggles start/stop, sends matching backend cmd ─
+  async function handleFollowLine() {
+    if (isFollowing) {
+      dispatch({ type: "FOLLOW_LINE_STOP" });
+      setMode("idle");
+      try { await sendFollowLineCommand("stop"); } catch (e) { console.error(e); }
+    } else {
+      dispatch({ type: "FOLLOW_LINE" });
+      setMode("following");
+      try { await sendFollowLineCommand("start"); } catch (e) { console.error(e); }
+    }
+  }
+
   return (
     <nav className="toolbar panel">
+
+      {/* Start / Stop — one button, two states */}
       <button
-        className={`tbtn tbtn--primary ${!isAuto || isRunning ? "tbtn--disabled" : ""}`}
-        disabled={!isAuto || isRunning}
-        onClick={() => { dispatch({ type: "START" }); setMode("running"); }}
+        className={`tbtn ${isRunning ? "tbtn--danger tbtn--active" : "tbtn--primary"} ${isManual || isFollowing ? "tbtn--disabled" : ""}`}
+        disabled={isManual || isFollowing}
+        onClick={handleStartStop}
       >
-        ▶ Start
+        {isRunning ? "■ Stop" : "▶ Start"}
       </button>
 
+      {/* Replay */}
       <button
-        className={`tbtn tbtn--danger ${!isAuto || !isRunning ? "tbtn--disabled" : ""}`}
-        disabled={!isAuto || !isRunning}
-        onClick={() => { dispatch({ type: "STOP" }); setMode("idle"); }}
-      >
-        ■ Stop
-      </button>
-
-      <button
-        className="tbtn tbtn--ghost"
+        className={`tbtn tbtn--ghost ${isRunning || isFollowing ? "tbtn--disabled" : ""}`}
+        disabled={isRunning || isFollowing}
         onClick={() => dispatch({ type: "REPLAY" })}
       >
         ↩ Replay
       </button>
 
+      {/* Follow Line toggle */}
       <button
-        className={`tbtn tbtn--ghost ${isRunning ? "tbtn--disabled" : ""}`}
-        disabled={isRunning}
-        onClick={() => dispatch({ type: "FOLLOW_LINE" })}
+        className={`tbtn ${isFollowing ? "tbtn--secondary tbtn--active" : "tbtn--ghost"} ${isRunning || isManual ? "tbtn--disabled" : ""}`}
+        disabled={isRunning || isManual}
+        onClick={handleFollowLine}
       >
-        ⟳ Follow Line
+        {isFollowing ? "◼ Stop Line" : "⟳ Follow Line"}
       </button>
+
     </nav>
   );
 }

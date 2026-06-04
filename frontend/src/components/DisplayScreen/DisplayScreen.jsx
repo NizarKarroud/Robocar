@@ -1,11 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { requestCamera, CAMERA_STREAM_URL } from "../../services/api";
 import "./DisplayScreen.css";
 
-export default function DisplayScreen({ robotState }) {
+export default function DisplayScreen({ robotState, connected }) {
   const [camState,  setCamState]  = useState("idle");
   const [streamUrl, setStreamUrl] = useState(null);
   const [errorMsg,  setErrorMsg]  = useState("");
+  // imgVisible is separate from camState — we hide the image INSTANTLY on disconnect
+  // while camState transitions, to prevent last-frame freeze showing
+  const [imgVisible, setImgVisible] = useState(false);
+  const imgRef = useRef(null);
 
   const speed    = robotState.speed;
   const barColor = speed > 70 ? "var(--red)" : speed > 40 ? "var(--amb)" : "var(--cyan)";
@@ -14,14 +18,15 @@ export default function DisplayScreen({ robotState }) {
     setCamState("requesting");
     setErrorMsg("");
     setStreamUrl(null);
+    setImgVisible(false);
 
     try {
       const data = await requestCamera("connection");
 
       if (data.status === "accepted") {
-        // Use the proxied stream endpoint (backend relays the car's TLS stream)
         setStreamUrl(CAMERA_STREAM_URL);
         setCamState("live");
+        setImgVisible(true);
       } else {
         setCamState("error");
         setErrorMsg(data.message || "Request rejected");
@@ -33,22 +38,34 @@ export default function DisplayScreen({ robotState }) {
   }
 
   async function disconnectCamera() {
+    // Immediately wipe the image src so the last frame disappears right away,
+    // before the async disconnection request even resolves
+    setImgVisible(false);
+    setStreamUrl(null);
+    setCamState("idle");
+
     try {
       await requestCamera("disconnection");
     } catch {
       // best-effort
     }
-    setStreamUrl(null);
-    setCamState("idle");
   }
 
+  // Auto-connect when user logs in; disconnect when they log out
   useEffect(() => {
+    if (!connected) {
+      // User logged out — wipe feed immediately
+      setImgVisible(false);
+      setStreamUrl(null);
+      setCamState("idle");
+      requestCamera("disconnection").catch(() => {});
+      return;
+    }
     connectCamera();
     return () => {
-      // Disconnect camera cleanly when component unmounts
       requestCamera("disconnection").catch(() => {});
     };
-  }, []);
+  }, [connected]);
 
   return (
     <section className="display-screen panel">
@@ -63,33 +80,46 @@ export default function DisplayScreen({ robotState }) {
       </div>
 
       {/* Camera feed */}
-       <div className="cam-section">
-        {/* Status dot — only visible when NOT live */}
-        {camState !== "live" && (
-          <div className="cam-header">
-            <span className="cam-dot" />
-            <span className="cam-status-text">
-              {camState === "requesting" && "Connecting..."}
-              {camState === "error"      && `Error: ${errorMsg}`}
-              {camState === "idle"       && "Idle"}
-            </span>
-          </div>
-        )}
- 
+      <div className="cam-section">
+
+        {/* Header bar — always visible, shows status + disconnect button when live */}
+        <div className="cam-header">
+          <span className={`cam-dot ${camState === "live" ? "live" : ""}`} />
+          <span className="cam-status-text">
+            {camState === "live"       && "LIVE"}
+            {camState === "requesting" && "Connecting..."}
+            {camState === "error"      && `Error: ${errorMsg}`}
+            {camState === "idle"       && "Camera idle"}
+          </span>
+          {camState === "live" && (
+            <button className="cam-disconnect-btn" onClick={disconnectCamera}>
+              ✕ Disconnect
+            </button>
+          )}
+        </div>
+
         <div className="cam-body">
-          {camState === "live" && streamUrl && (
+          {/* The img tag stays in the DOM only while imgVisible — prevents last-frame flash */}
+          {imgVisible && streamUrl && (
             <img
+              ref={imgRef}
               src={streamUrl}
               alt="Camera feed"
               className="cam-img"
-              onError={() => { setCamState("error"); setErrorMsg("Stream lost"); }}
+              onError={() => {
+                setImgVisible(false);
+                setCamState("error");
+                setErrorMsg("Stream lost");
+              }}
             />
           )}
+
           {camState === "requesting" && (
             <div className="cam-placeholder">
               <p>Waiting for car response...</p>
             </div>
           )}
+
           {(camState === "error" || camState === "idle") && (
             <div className="cam-placeholder">
               {camState === "error" && <p className="cam-err-msg">{errorMsg}</p>}

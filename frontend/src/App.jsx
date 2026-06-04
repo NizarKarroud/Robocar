@@ -21,7 +21,6 @@ export default function App() {
   }
 
   function handleLogout() {
-    // Reset app state — logout action is intentionally a no-op for now
     setConnected(false);
     setMode("idle");
     dispatch({ type: "UPDATE_STATE", payload: { connected: false } });

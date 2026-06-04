@@ -27,40 +27,44 @@ trail_sensors_dict = {
     'right': TXT_M_I8_trail_follower,
 }
 
-COMMAND_MAP = {
-    "follow_line": lambda: commands.run_follow_line(motors_dict, trail_sensors_dict),
+dist_sensor_dict = {
+    'front' : TXT_M_I2_ultrasonic_distance_meter,
+    'back' : TXT_M_I1_ultrasonic_distance_meter,
+    'left' : TXT_M_I3_ultrasonic_distance_meter,
+    'right' : TXT_M_I4_ultrasonic_distance_meter
+
 }
 
-print("before connect_mqtt")
-client = connect_mqtt()
-print("after connect_mqtt")
-client.loop_start()
-print("after loop_start")
+COMMAND_MAP = {
+    "follow_line": lambda: commands.run_follow_line(motors_dict, trail_sensors_dict),
+    "follow_wall": lambda: commands.run_follow_wall(motors_dict, dist_sensor_dict['right'], dist_sensor_dict['front']),
+}
 
-TXT_M_USB1_1_camera.set_rotate(False)
-TXT_M_USB1_1_camera.set_height(240)
-TXT_M_USB1_1_camera.set_width(320)
-TXT_M_USB1_1_camera.set_fps(30)
-TXT_M_USB1_1_camera.start()
-print("after camera start")
+# client = connect_mqtt()
+# client.loop_start()
 
-services.camera_stream = CameraStreamServer(TXT_M_USB1_1_camera)
-print("after camera stream")
+# TXT_M_USB1_1_camera.set_rotate(False)
+# TXT_M_USB1_1_camera.set_height(240)
+# TXT_M_USB1_1_camera.set_width(320)
+# TXT_M_USB1_1_camera.set_fps(30)
+# TXT_M_USB1_1_camera.start()
 
-print("Command executor ready")
+# services.camera_stream = CameraStreamServer(TXT_M_USB1_1_camera)
 
-
-while True:
-    try:
-        command = state.command_queue.get(timeout=1)
-    except Exception:
-        continue
+# while True:
+#     try:
+#         command = state.command_queue.get(timeout=1)
+#     except Exception:
+#         continue
     
-    print(command)
-    handler = COMMAND_MAP.get(command)
-    if handler:
-        t = threading.Thread(target=handler, daemon=True)
-        t.start()
-        t.join()
-    else:
-        print("Unknown command:", command)
+#     print(command)
+#     handler = COMMAND_MAP.get(command)
+#     if handler:
+#         t = threading.Thread(target=handler, daemon=True)
+#         t.start()
+#         t.join()
+#     else:
+#         print("Unknown command:", command)
+
+
+commands.run_follow_wall(motors_dict, dist_sensor_dict['right'], dist_sensor_dict['front'])

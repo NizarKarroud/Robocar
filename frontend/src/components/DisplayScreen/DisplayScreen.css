@@ -79,6 +79,11 @@
   animation: blink 2s infinite;
 }
 
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
 .cam-status-text {
   font-family: 'Share Tech Mono', monospace;
   font-size: 10px;
@@ -98,26 +103,26 @@
   cursor: pointer;
   transition: background 0.15s;
 }
-
 .cam-disconnect-btn:hover {
   background: color-mix(in srgb, var(--red) 15%, transparent);
 }
 
+/* cam-body fills all remaining space; image fills it edge-to-edge */
 .cam-body {
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
   overflow: hidden;
+  /* no padding — image goes wall-to-wall */
 }
 
 .cam-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  border-radius: 6px;
+  object-fit: cover;   /* cover = fills the box, no black bars */
+  display: block;
 }
 
 .cam-placeholder {
@@ -148,7 +153,6 @@
   cursor: pointer;
   transition: background 0.15s;
 }
-
 .cam-retry-btn:hover {
   background: var(--cyanm);
 }

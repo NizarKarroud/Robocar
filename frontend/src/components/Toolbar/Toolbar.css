@@ -35,6 +35,11 @@
 }
 .tbtn--danger:hover { background: rgba(200, 30, 30, 0.08); }
 
+/* danger + active = filled red (when running and you click Stop) */
+.tbtn--danger.tbtn--active {
+  background: color-mix(in srgb, var(--red) 18%, transparent);
+}
+
 .tbtn--secondary {
   background: transparent;
   color: var(--amb);
@@ -42,8 +47,9 @@
 }
 .tbtn--secondary:hover { background: rgba(180, 100, 0, 0.08); }
 
-.tbtn--active-manual {
-  background: rgba(180, 100, 0, 0.1);
+/* secondary + active = filled amber (when follow-line is running) */
+.tbtn--secondary.tbtn--active {
+  background: color-mix(in srgb, var(--amb) 18%, transparent);
 }
 
 .tbtn--ghost {

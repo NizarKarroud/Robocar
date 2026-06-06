@@ -70,4 +70,124 @@ COMMAND_MAP = {
 #     else:
 #         print("Unknown command:", command)
 
+def pause():
+    time.sleep(0.2)
 
+
+print("=== Cardinal directions ===")
+
+print("Forward")
+commands.move_for_seconds(commands.move_forward,  motors_dict, 1.5, speed=260)
+pause()
+
+print("Backward")
+commands.move_for_seconds(commands.move_backward, motors_dict, 1.5, speed=260)
+pause()
+
+print("Strafe right")
+commands.move_for_seconds(commands.strafe_right,  motors_dict, 1.5, speed=260)
+pause()
+
+print("Strafe left")
+commands.move_for_seconds(commands.strafe_left,   motors_dict, 1.5, speed=260)
+pause()
+
+# ── 2. Rotations ──────────────────────────────────────────────────────────────
+print("=== Rotations ===")
+
+print("Rotate CW")
+commands.move_for_seconds(commands.rotate_cw,  motors_dict, 1.0, speed=200)
+pause()
+
+print("Rotate CCW")
+commands.move_for_seconds(commands.rotate_ccw, motors_dict, 1.0, speed=200)
+pause()
+
+# ── 3. Diagonals ──────────────────────────────────────────────────────────────
+print("=== Diagonals ===")
+
+print("Diagonal front-right")
+commands.move_for_seconds(commands.move_diagonal_front_right, motors_dict, 1.2, speed=260)
+pause()
+
+print("Diagonal front-left")
+commands.move_for_seconds(commands.move_diagonal_front_left,  motors_dict, 1.2, speed=260)
+pause()
+
+print("Diagonal rear-right")
+commands.move_for_seconds(commands.move_diagonal_rear_right,  motors_dict, 1.2, speed=260)
+pause()
+
+print("Diagonal rear-left")
+commands.move_for_seconds(commands.move_diagonal_rear_left,   motors_dict, 1.2, speed=260)
+pause()
+
+# ── 4. Arc turns ──────────────────────────────────────────────────────────────
+print("=== Arc turns ===")
+
+print("Arc turn right (gentle, ratio=0.3)")
+commands.move_for_seconds(commands.arc_turn_right, motors_dict, 1.5, speed=260, turn_ratio=0.3)
+pause()
+
+print("Arc turn left (gentle, ratio=0.3)")
+commands.move_for_seconds(commands.arc_turn_left,  motors_dict, 1.5, speed=260, turn_ratio=0.3)
+pause()
+
+print("Arc turn right (sharp, ratio=0.7)")
+commands.move_for_seconds(commands.arc_turn_right, motors_dict, 1.5, speed=260, turn_ratio=0.7)
+pause()
+
+print("Arc turn left (sharp, ratio=0.7)")
+commands.move_for_seconds(commands.arc_turn_left,  motors_dict, 1.5, speed=260, turn_ratio=0.7)
+pause()
+
+# ── 5. Speed ramp ─────────────────────────────────────────────────────────────
+print("=== Speed ramp (forward) ===")
+
+for spd in [100, 200, 300, 400, 512]:
+    print("  Forward speed={}".format(spd))
+    commands.move_for_seconds(commands.move_forward, motors_dict, 0.8, speed=spd)
+    pause()
+
+# ── 6. Square pattern ─────────────────────────────────────────────────────────
+print("=== Square pattern ===")
+
+square_moves = [
+    ("Forward",      commands.move_forward),
+    ("Strafe right", commands.strafe_right),
+    ("Backward",     commands.move_backward),
+    ("Strafe left",  commands.strafe_left),
+]
+
+for label, fn in square_moves:
+    print("  {}".format(label))
+    commands.move_for_seconds(fn, motors_dict, 1.2, speed=260)
+    pause()
+
+# ── 7. X pattern (diagonals) ──────────────────────────────────────────────────
+print("=== X diagonal pattern ===")
+
+diagonal_moves = [
+    ("Front-right", commands.move_diagonal_front_right),
+    ("Rear-left",   commands.move_diagonal_rear_left),
+    ("Front-left",  commands.move_diagonal_front_left),
+    ("Rear-right",  commands.move_diagonal_rear_right),
+]
+
+for label, fn in diagonal_moves:
+    print("  {}".format(label))
+    commands.move_for_seconds(fn, motors_dict, 1.0, speed=260)
+    pause()
+
+# ── 8. Spin test ──────────────────────────────────────────────────────────────
+print("=== Full spin (CW then CCW) ===")
+
+print("  CW full rotation (~2s)")
+commands.move_for_seconds(commands.rotate_cw,  motors_dict, 2.0, speed=260)
+pause()
+
+print("  CCW full rotation (~2s)")
+commands.move_for_seconds(commands.rotate_ccw, motors_dict, 2.0, speed=260)
+pause()
+
+print("=== All tests complete ===")

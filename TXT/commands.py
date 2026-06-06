@@ -1,6 +1,6 @@
 import time
 import state
-
+import math
 # ── Robot physical parameters ────────────────────────────────────────────────
 R  = 2.75   # Wheel radius (cm)
 L  = 18.0   # Front-to-rear axle distance (cm)
@@ -152,45 +152,72 @@ def run_follow_line(motors_dict, trail_sensors_dict):
     stop_motors(motors_dict)
     print("Line follow stopped")
 
-def run_follow_wall(motors_dict, dist_sensor_side, dist_sensor_front, target_dist=15.0):
-    BASE_SPEED   = 220
-    TURN_DELTA   = 80
-    MARGIN_CLOSE = 2.0
-    MARGIN_FAR   = 2.0
-    FRONT_DIST   = 40.0
-    print("Starting wall follow")
+def run_follow_wall(motors_dict, dist_sensor_dict, target_dist=15.0):
+    BASE_SPEED       = 220
+    FRONT_DIST       = 40.0
+    FRONT_TRIGGER_CM = 30.0
+    MIN_TURN_TIME    = 0.8
+    PARALLEL_TOL_CM  = 2.0
+    DISTANCE_CAPTEURS = 10.0   # distance physique entre tes deux capteurs droite (cm) — à mesurer
+    K_DIST  = 80.0
+    K_ANGLE = 60.0
+
+    print("Starting wall follow (PD)")
     state.command_event.clear()
+
+    mode       = "FOLLOW"
+    turn_start = 0.0
+
+    hist_front = [target_dist] * 3
+    hist_rear  = [target_dist] * 3
+
     while not state.command_event.is_set():
-        dist       = dist_sensor_side.get_distance()
-        dist_front = dist_sensor_front.get_distance()
-        # --- obstacle devant -> tourne sans stopper ---
-        if dist_front < FRONT_DIST:
-            while not state.command_event.is_set():
-                dist_front = dist_sensor_front.get_distance()
-                motors_run(motors_dict,
-                           BASE_SPEED - TURN_DELTA,
-                           BASE_SPEED + TURN_DELTA)
-                if dist_front >= FRONT_DIST:
-                    break
-                time.sleep(0.015)
-        # --- trop proche du mur ---
-        elif dist < target_dist - MARGIN_CLOSE:
-            motors_run(motors_dict,
-                       BASE_SPEED - TURN_DELTA,
-                       BASE_SPEED + TURN_DELTA)
-        # --- trop loin du mur ---
-        elif dist > target_dist + MARGIN_FAR:
-            motors_run(motors_dict,
-                       BASE_SPEED + TURN_DELTA,
-                       BASE_SPEED - TURN_DELTA)
-        # --- bonne distance ---
-        else:
-            motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
-        time.sleep(0.015)
+        d_front_raw = dist_sensor_dict['right'].get_distance()   # capteur droit avant
+        d_rear_raw  = dist_sensor_dict['back'].get_distance()    # capteur droit arrière
+
+        hist_front.pop(0); hist_front.append(d_front_raw)
+        hist_rear.pop(0);  hist_rear.append(d_rear_raw)
+
+        d_front = sum(hist_front) / 3.0
+        d_rear  = sum(hist_rear)  / 3.0
+
+        if mode == "FOLLOW":
+            distance = (d_front + d_rear) / 2.0
+            angle    = math.atan((d_front - d_rear) / DISTANCE_CAPTEURS)
+
+            err_dist  = target_dist - distance
+            err_angle = -angle
+
+            correction = K_DIST * err_dist + K_ANGLE * err_angle
+
+            right = int(max(0, min(512, BASE_SPEED - correction)))
+            left  = int(max(0, min(512, BASE_SPEED + correction)))
+
+            motors_run(motors_dict, left, right)
+
+            d_front_sensor = dist_sensor_dict['front'].get_distance()
+            if d_front_sensor <= FRONT_TRIGGER_CM:
+                mode       = "TURN"
+                turn_start = time.time()
+
+            print("FOLLOW | left={} right={} front={:.1f}cm".format(left, right, d_front_sensor))
+
+        else:  # TURN
+            motors_run(motors_dict, -BASE_SPEED, BASE_SPEED)   # rotation sur place
+
+            parallel_error = abs(d_front_raw - d_rear_raw)
+            enough_time    = (time.time() - turn_start) >= MIN_TURN_TIME
+
+            if enough_time and parallel_error <= PARALLEL_TOL_CM:
+                mode = "FOLLOW"
+
+            print("TURN | front={:.1f}cm rear={:.1f}cm e_par={:.2f}".format(
+                d_front_raw, d_rear_raw, parallel_error))
+
+        time.sleep(0.02)
+
     stop_motors(motors_dict)
     print("Wall follow stopped")
-
-
 # --- 4.3 Top-down : machine a etats -------------------------------------------
 #
 # Etats :
@@ -217,14 +244,13 @@ def run_avoid_topdown(motors_dict, dist_sensor_dict):
     SIDE_DIST     = 12.0
 
     print("Starting top-down obstacle avoidance")
-    print("Demarrage dans 5 secondes")
-    time.sleep(5)
+    state.command_event.clear()
 
     current_state  = STATE_FORWARD
     recover_timer  = 0.0
     turn_direction = 0
 
-    while True:
+    while not state.command_event.is_set():
         d_front = _read_avg(dist_sensor_dict['front'])
         d_left  = _read_avg(dist_sensor_dict['left'])
         d_right = _read_avg(dist_sensor_dict['right'])
@@ -236,9 +262,9 @@ def run_avoid_topdown(motors_dict, dist_sensor_dict):
         if current_state == STATE_FORWARD:
             if d_front < FRONT_DIST:
                 if d_right < d_left:
-                    turn_direction = -1   # obstacle a droite -> tourne gauche
+                    turn_direction = -1
                 else:
-                    turn_direction = 1    # obstacle a gauche -> tourne droite
+                    turn_direction = 1
                 current_state = STATE_TURN
                 print("State -> TURN  direction={}  (front={:.1f}cm)".format(
                     turn_direction, d_front))
@@ -278,6 +304,9 @@ def run_avoid_topdown(motors_dict, dist_sensor_dict):
             motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
 
         time.sleep(0.015)
+
+    stop_motors(motors_dict)
+    print("Top-down avoidance stopped")
 
 # --- 4.4 Bottom-up : vehicule de Braitenberg ----------------------------------
 #

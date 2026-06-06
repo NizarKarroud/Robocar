@@ -58,3 +58,42 @@ async def control_request(
         SECRET_KEY=state.active_key.encode()
     )
 
+
+@router.post("/control/command/follow/wall")
+async def control_command_follow_wall(
+    payload: CommandFollowLine,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+    payload.client_id = state.CLIENT_ID
+    sign_and_publish(
+        client=client,
+        topic=f"car/{state.CAR_ID}/control/command/follow/wall",
+        payload=payload,
+        SECRET_KEY=state.active_key.encode()
+    )
+
+@router.post("/control/command/avoid/topdown")
+async def control_command_avoid_topdown(
+    payload: CommandFollowLine,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+    payload.client_id = state.CLIENT_ID
+    sign_and_publish(
+        client=client,
+        topic=f"car/{state.CAR_ID}/control/command/avoid/topdown",
+        payload=payload,
+        SECRET_KEY=state.active_key.encode()
+    )
+
+@router.post("/control/command/braitenberg")
+async def control_command_braitenberg(
+    payload: CommandFollowLine,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+    payload.client_id = state.CLIENT_ID
+    sign_and_publish(
+        client=client,
+        topic=f"car/{state.CAR_ID}/control/command/braitenberg",
+        payload=payload,
+        SECRET_KEY=state.active_key.encode()
+    )

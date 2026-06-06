@@ -17,6 +17,9 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("car/{}/control/request".format(CAR_ID))
     client.subscribe("car/{}/control/camera/request".format(CAR_ID))
     client.subscribe("car/{}/control/command/follow/line".format(CAR_ID))
+    client.subscribe("car/{}/control/command/follow/wall".format(CAR_ID))
+    client.subscribe("car/{}/control/command/avoid/topdown".format(CAR_ID))
+    client.subscribe("car/{}/control/command/braitenberg".format(CAR_ID))
 
 def on_message(client, userdata, message):
     topic = message.topic  

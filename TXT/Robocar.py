@@ -37,7 +37,11 @@ dist_sensor_dict = {
 
 COMMAND_MAP = {
     "follow_line": lambda: commands.run_follow_line(motors_dict, trail_sensors_dict),
-    "follow_wall": lambda: commands.run_follow_wall(motors_dict, dist_sensor_dict['right'], dist_sensor_dict['front']),
+    "follow_wall": lambda: commands.run_follow_wall(motors_dict, dist_sensor_dict),
+    "avoid_topdown": lambda: commands.run_avoid_topdown(motors_dict, dist_sensor_dict),
+    "braitenberg":   lambda: commands.run_braitenberg(motors_dict, dist_sensor_dict),
+
+
 }
 
 # client = connect_mqtt()
@@ -67,4 +71,3 @@ COMMAND_MAP = {
 #         print("Unknown command:", command)
 
 
-commands.run_follow_wall(motors_dict, dist_sensor_dict['right'], dist_sensor_dict['front'])

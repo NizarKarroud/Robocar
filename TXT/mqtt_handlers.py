@@ -147,8 +147,77 @@ def handle_control_command_follow_line(raw: dict, client: mqtt_client.Client, CA
         state.command_event.set()
         state.command_queue.put("follow_line")
 
+
+def handle_control_command_avoid_obstacle(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+    validity = verify_signature(raw["data"], raw["signature"])
+
+    if not validity:
+        print("invalid signature")
+        return
+
+    client_id = raw["data"].get("client_id")
+    if client_id != state.CLIENT_ID:
+        print("unauthorized client")
+        return
+
+    action = raw["data"].get("action")
+
+    if action == "stop":
+        state.command_event.set()
+        
+    elif action == "start":
+        state.command_event.set()
+        state.command_queue.put("avoid_topdown")  
+
+def handle_control_command_follow_wall(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+    validity = verify_signature(raw["data"], raw["signature"])
+
+    if not validity:
+        print("invalid signature")
+        return
+
+    client_id = raw["data"].get("client_id")
+    if client_id != state.CLIENT_ID:
+        print("unauthorized client")
+        return
+
+    action = raw["data"].get("action")
+
+    if action == "stop":
+        state.command_event.set()
+
+    elif action == "start":
+        state.command_event.set()
+        state.command_queue.put("follow_wall")
+
+
+def handle_control_command_braitenberg(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+    validity = verify_signature(raw["data"], raw["signature"])
+
+    if not validity:
+        print("invalid signature")
+        return
+
+    client_id = raw["data"].get("client_id")
+    if client_id != state.CLIENT_ID:
+        print("unauthorized client")
+        return
+
+    action = raw["data"].get("action")
+
+    if action == "stop":
+        state.command_event.set()
+
+    elif action == "start":
+        state.command_event.set()
+        state.command_queue.put("braitenberg")
+
+
 TOPIC_HANDLERS = {
-    "control/request": handle_control_request,
-    "control/command/follow/line" : handle_control_command_follow_line,
-    "control/camera/request" : handle_control_camera_request ,
+    "control/request":                    handle_control_request,
+    "control/command/follow/line":        handle_control_command_follow_line,
+    "control/command/follow/wall":        handle_control_command_follow_wall,
+    "control/command/avoid/topdown":      handle_control_command_avoid_obstacle,
+    "control/command/braitenberg":        handle_control_command_braitenberg,
+    "control/camera/request":             handle_control_camera_request,
 }

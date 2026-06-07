@@ -1,7 +1,7 @@
 # app/mqtt/handlers.py
 from app.schemas.car import ConnectionResponse, ConnectionStatus, CameraResponse, CameraRequestStatus
 from app.models.models import RobotSession, Telemetry
-from app.database import engine
+from app.database.db import engine
 from app import state
 from sqlmodel import Session
 from datetime import datetime, timezone

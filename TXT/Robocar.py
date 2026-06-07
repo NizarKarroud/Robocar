@@ -29,7 +29,6 @@ trail_sensors_dict = {
 
 dist_sensor_dict = {
     'front' : TXT_M_I2_ultrasonic_distance_meter,
-    'back' : TXT_M_I1_ultrasonic_distance_meter,
     'left' : TXT_M_I3_ultrasonic_distance_meter,
     'right' : TXT_M_I4_ultrasonic_distance_meter
 

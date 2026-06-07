@@ -3,8 +3,8 @@ import json
 from mqtt_handlers import TOPIC_HANDLERS # type: ignore
 from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER # type: ignore
 import state
-BROKER ="192.168.50.122"
-#BROKER = "192.168.137.1"
+#BROKER ="192.168.50.122"
+BROKER = "192.168.137.1"
 
 PORT = 8883
 
@@ -21,6 +21,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("car/{}/control/command/follow/wall".format(CAR_ID))
     client.subscribe("car/{}/control/command/avoid/topdown".format(CAR_ID))
     client.subscribe("car/{}/control/command/braitenberg".format(CAR_ID))
+    state.mqtt_client = client
 
 def on_message(client, userdata, message):
     topic = message.topic  

@@ -158,87 +158,69 @@ def run_follow_line(motors_dict, trail_sensors_dict):
 
 # ── Wall follower ─────────────────────────────────────────────────────────────
 
-def run_follow_wall(motors_dict, dist_sensor_dict, target_dist=15.0):
-    BASE_SPEED        = 220
-    FRONT_DIST        = 40.0
-    FRONT_TRIGGER_CM  = 30.0
-    MIN_TURN_TIME     = 0.8
-    PARALLEL_TOL_CM   = 2.0
-    DISTANCE_CAPTEURS = 10.0
-    K_DIST  = 80.0
-    K_ANGLE = 60.0
-
-    print("Starting wall follow (PD)")
+def run_follow_wall(motors_dict, dist_sensor_dict):
+    BASE_SPEED    = 220
+    TARGET_DIST   = 12.0
+    FRONT_TRIGGER = 25.0
+    WALL_CLOSE    = 20.0
+    MIN_TURN_TIME = 0.3
+    MAX_TURN_TIME = 3.0
+    Kp            = 3.0
+    hist = [TARGET_DIST] * 3
+    print("Starting wall follow")
     state.command_event.clear()
-
     mode       = "FOLLOW"
     turn_start = 0.0
-    hist_front = [target_dist] * 3
-    hist_rear  = [target_dist] * 3
-
     while not state.command_event.is_set():
-        d_front_raw = dist_sensor_dict['right'].get_distance()
-        d_rear_raw  = dist_sensor_dict['back'].get_distance()
-
-        hist_front.pop(0); hist_front.append(d_front_raw)
-        hist_rear.pop(0);  hist_rear.append(d_rear_raw)
-
-        d_front = sum(hist_front) / 3.0
-        d_rear  = sum(hist_rear)  / 3.0
-
+        d_front = dist_sensor_dict['front'].get_distance()
+        d_right = dist_sensor_dict['right'].get_distance()
+        hist.pop(0)
+        hist.append(d_right)
+        d_right_avg = sum(hist) / 3.0
         if mode == "FOLLOW":
-            distance = (d_front + d_rear) / 2.0
-            angle    = math.atan((d_front - d_rear) / DISTANCE_CAPTEURS)
-
-            err_dist  = target_dist - distance
-            err_angle = -angle
-
-            correction = K_DIST * err_dist + K_ANGLE * err_angle
-
-            right = int(max(0, min(512, BASE_SPEED - correction)))
-            left  = int(max(0, min(512, BASE_SPEED + correction)))
-
-            motors_run(motors_dict, left, right)
-
-            d_front_sensor = dist_sensor_dict['front'].get_distance()
-            if d_front_sensor <= FRONT_TRIGGER_CM:
+            error      = TARGET_DIST - d_right_avg
+            correction = int(Kp * error)
+            left_spd  = max(50, min(400, BASE_SPEED + correction))
+            right_spd = max(50, min(400, BASE_SPEED - correction))
+            print("[FOLLOW] front={:.1f} right={:.1f} left_spd={} right_spd={}".format(
+                d_front, d_right_avg, left_spd, right_spd))
+            motors_run(motors_dict, left_spd, right_spd)
+            if d_front < FRONT_TRIGGER:
+                print("OBSTACLE -> TURNING")
                 mode       = "TURN"
                 turn_start = time.time()
-
-            print("FOLLOW | left={} right={} front={:.1f}cm".format(left, right, d_front_sensor))
-
+                hist       = [TARGET_DIST] * 3
         else:  # TURN
-            left, right = -BASE_SPEED, BASE_SPEED
-            motors_run(motors_dict, left, right)
-
-            parallel_error = abs(d_front_raw - d_rear_raw)
-            enough_time    = (time.time() - turn_start) >= MIN_TURN_TIME
-
-            if enough_time and parallel_error <= PARALLEL_TOL_CM:
+            left_spd, right_spd = 80, 220
+            motors_run(motors_dict, left_spd, right_spd)
+            elapsed = time.time() - turn_start
+            print("[TURN] front={:.1f} right={:.1f} t={:.2f}".format(
+                d_front, d_right, elapsed))
+            if elapsed >= MIN_TURN_TIME and d_front > FRONT_TRIGGER:
+                print("WALL ACQUIRED -> FOLLOW")
+                hist = [d_right] * 3
                 mode = "FOLLOW"
-
-            print("TURN | front={:.1f}cm rear={:.1f}cm e_par={:.2f}".format(
-                d_front_raw, d_rear_raw, parallel_error))
+            elif elapsed > MAX_TURN_TIME:
+                print("TURN TIMEOUT -> FOLLOW")
+                hist = [d_right] * 3
+                mode = "FOLLOW"
 
         state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "mode": "follow_wall",
             "sensors": {
-                "d_front": d_front_sensor,
-                "d_right": d_front_raw,
-                "d_back":  d_rear_raw,
+                "d_front": d_front,
+                "d_right": d_right_avg,
             },
             "command": {
-                "left_pwm":  left,
-                "right_pwm": right
+                "left_pwm":  left_spd,
+                "right_pwm": right_spd
             }
         }))
 
         time.sleep(0.02)
-
     stop_motors(motors_dict)
     print("Wall follow stopped")
-
 
 # ── Top-down obstacle avoidance ───────────────────────────────────────────────
 

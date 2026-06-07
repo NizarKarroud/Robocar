@@ -223,6 +223,7 @@ MOVEMENT_COMMANDS = {
 
 def handle_control_command_movement(raw: dict, client: mqtt_client.Client, CAR_ID: str):
     validity = verify_signature(raw["data"], raw["signature"])
+    print(dict)
 
     if not validity:
         print("invalid signature")

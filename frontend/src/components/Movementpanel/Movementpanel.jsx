@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { sendMovementCommand } from "../../services/api";
 import "./MovementPanel.css";
 
 const MOVEMENTS = [
-  { id: "forward",      icon: "↑", group: "cardinal" },
-  { id: "backward",     icon: "↓", group: "cardinal" },
-  { id: "strafe_right", icon: "→", group: "cardinal" },
-  { id: "strafe_left",  icon: "←", group: "cardinal" },
-  { id: "rotate_cw",   icon: "↻", group: "rotate"   },
-  { id: "rotate_ccw",  icon: "↺", group: "rotate"   },
-  { id: "diag_fr",     icon: "↗", group: "diag"     },
-  { id: "diag_fl",     icon: "↖", group: "diag"     },
-  { id: "diag_br",     icon: "↘", group: "diag"     },
-  { id: "diag_bl",     icon: "↙", group: "diag"     },
-  { id: "arc_right",   icon: "⤵", group: "arc"      },
-  { id: "arc_left",    icon: "⤴", group: "arc"      },
+  { id: "move_forward",          icon: "↑", group: "cardinal" },
+  { id: "move_backward",         icon: "↓", group: "cardinal" },
+  { id: "strafe_right",          icon: "→", group: "cardinal" },
+  { id: "strafe_left",           icon: "←", group: "cardinal" },
+  { id: "rotate_cw",             icon: "↻", group: "rotate"   },
+  { id: "rotate_ccw",            icon: "↺", group: "rotate"   },
+  { id: "diagonal_front_right",  icon: "↗", group: "diag"     },
+  { id: "diagonal_front_left",   icon: "↖", group: "diag"     },
+  { id: "diagonal_rear_right",   icon: "↘", group: "diag"     },
+  { id: "diagonal_rear_left",    icon: "↙", group: "diag"     },
+  { id: "arc_right_gentle",      icon: "⤵", group: "arc"      },
+  { id: "arc_left_gentle",       icon: "⤴", group: "arc"      },
 ];
 
 const DURATIONS = [10, 20, 30, 45, 60, 90, 120];
@@ -21,19 +22,44 @@ const DURATIONS = [10, 20, 30, 45, 60, 90, 120];
 export default function MovementPanel({ connected, mode }) {
   const isAnyAuto = ["avoidTopdown", "braitenberg", "following", "followingWall"].includes(mode);
   const locked = !connected || isAnyAuto;
+
   const [selected,  setSelected]  = useState(null);
   const [duration,  setDuration]  = useState(30);
   const [scheduled, setScheduled] = useState(null);
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState(null);
+  const timerRef = useRef(null);
+
+  function reset() {
+    setScheduled(null);
+    setSelected(null);
+  }
+
+  function handleCancel() {
+    clearTimeout(timerRef.current);
+    reset();
+  }
 
   function handleSelect(id) {
     setSelected(prev => prev === id ? null : id);
+    setError(null);
   }
 
-  function handleGo() {
-    if (!selected) return;
-    const mv = MOVEMENTS.find(m => m.id === selected);
-    setScheduled({ movement: mv, duration });
-    console.log("[MovementPanel]", selected, duration + "s");
+  async function handleGo() {
+    if (!selected || locked) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await sendMovementCommand(selected, duration);
+      const mv = MOVEMENTS.find(m => m.id === selected);
+      setScheduled({ movement: mv, duration });
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(reset, duration * 1000);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -68,20 +94,26 @@ export default function MovementPanel({ connected, mode }) {
           ))}
         </div>
 
+        {error && <div className="mv-error">{error}</div>}
+
         {scheduled ? (
           <div className="mv-scheduled">
             <span>{scheduled.movement.icon}</span>
             <span className="mv-sched-dur">{scheduled.duration}s</span>
             <span className="mv-sched-dot" />
-            <button className="mv-cancel-btn" onClick={() => setScheduled(null)}>✕</button>
+            <button className="mv-cancel-btn" onClick={handleCancel}>✕</button>
           </div>
         ) : (
           <button
-            className={`mv-go-btn ${!selected || !connected ? "mv-go-btn--off" : ""}`}
-            disabled={!selected || locked}
+            className={`mv-go-btn ${!selected || locked ? "mv-go-btn--off" : ""}`}
+            disabled={!selected || locked || loading}
             onClick={handleGo}
           >
-            {selected ? `▶ ${MOVEMENTS.find(m => m.id === selected).icon} · ${duration}s` : "▶ —"}
+            {loading
+              ? "⏳"
+              : selected
+                ? `▶ ${MOVEMENTS.find(m => m.id === selected).icon} · ${duration}s`
+                : "▶ —"}
           </button>
         )}
 

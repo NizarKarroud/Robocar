@@ -21,6 +21,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("car/{}/control/command/follow/wall".format(CAR_ID))
     client.subscribe("car/{}/control/command/avoid/topdown".format(CAR_ID))
     client.subscribe("car/{}/control/command/braitenberg".format(CAR_ID))
+    client.subscribe("car/{}/control/command/movement".format(CAR_ID))
     state.mqtt_client = client
 
 def on_message(client, userdata, message):

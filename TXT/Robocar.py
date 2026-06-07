@@ -41,46 +41,46 @@ COMMAND_MAP = {
     "follow_wall":   lambda: commands.run_follow_wall(motors_dict, dist_sensor_dict),
     "avoid_topdown": lambda: commands.run_avoid_topdown(motors_dict, dist_sensor_dict),
     "braitenberg":   lambda: commands.run_braitenberg(motors_dict, dist_sensor_dict),
-    "move_forward":  lambda: commands.move_for_seconds(commands.move_forward,motors_dict, 1.5, speed=260),
-    "move_backward": lambda: commands.move_for_seconds(commands.move_backward,motors_dict, 1.5, speed=260),
-    "strafe_right":lambda: commands.move_for_seconds(commands.strafe_right,motors_dict, 1.5, speed=260),
-    "strafe_left":lambda: commands.move_for_seconds(commands.strafe_left,motors_dict, 1.5, speed=260),
+    "move_forward":  lambda: commands.move_for_seconds(commands.move_forward,motors_dict, 10, speed=260),
+    "move_backward": lambda: commands.move_for_seconds(commands.move_backward,motors_dict, 10, speed=260),
+    "strafe_right":lambda: commands.move_for_seconds(commands.strafe_right,motors_dict, 10, speed=260),
+    "strafe_left":lambda: commands.move_for_seconds(commands.strafe_left,motors_dict, 10, speed=260),
     "rotate_cw":lambda: commands.move_for_seconds(commands.rotate_cw,motors_dict, 1.0, speed=200),
     "rotate_ccw":lambda: commands.move_for_seconds(commands.rotate_ccw,motors_dict, 1.0, speed=200),
-    "diagonal_front_right":lambda: commands.move_for_seconds(commands.move_diagonal_front_right, motors_dict, 1.2, speed=260),
-    "diagonal_front_left":lambda: commands.move_for_seconds(commands.move_diagonal_front_left,  motors_dict, 1.2, speed=260),
-    "diagonal_rear_right":lambda: commands.move_for_seconds(commands.move_diagonal_rear_right,  motors_dict, 1.2, speed=260),
-    "diagonal_rear_left":lambda: commands.move_for_seconds(commands.move_diagonal_rear_left,   motors_dict, 1.2, speed=260),
-    "arc_right_gentle":lambda: commands.move_for_seconds(commands.arc_turn_right,motors_dict, 1.5, speed=260, turn_ratio=0.3),
-    "arc_left_gentle":lambda: commands.move_for_seconds(commands.arc_turn_left,motors_dict, 1.5, speed=260, turn_ratio=0.3),
-    "arc_right_sharp":lambda: commands.move_for_seconds(commands.arc_turn_right,motors_dict, 1.5, speed=260, turn_ratio=0.7),
-    "arc_left_sharp":lambda: commands.move_for_seconds(commands.arc_turn_left,motors_dict, 1.5, speed=260, turn_ratio=0.7),
+    "diagonal_front_right":lambda: commands.move_for_seconds(commands.move_diagonal_front_right, motors_dict, 10, speed=260),
+    "diagonal_front_left":lambda: commands.move_for_seconds(commands.move_diagonal_front_left,  motors_dict, 10, speed=260),
+    "diagonal_rear_right":lambda: commands.move_for_seconds(commands.move_diagonal_rear_right,  motors_dict, 10, speed=260),
+    "diagonal_rear_left":lambda: commands.move_for_seconds(commands.move_diagonal_rear_left,   motors_dict, 10, speed=260),
+    "arc_right_gentle":lambda: commands.move_for_seconds(commands.arc_turn_right,motors_dict, 10, speed=260, turn_ratio=0.3),
+    "arc_left_gentle":lambda: commands.move_for_seconds(commands.arc_turn_left,motors_dict, 10, speed=260, turn_ratio=0.3),
+    "arc_right_sharp":lambda: commands.move_for_seconds(commands.arc_turn_right,motors_dict, 10, speed=260, turn_ratio=0.7),
+    "arc_left_sharp":lambda: commands.move_for_seconds(commands.arc_turn_left,motors_dict, 10, speed=260, turn_ratio=0.7),
 }
 
 
 
-# TXT_M_USB1_1_camera.set_rotate(False)
-# TXT_M_USB1_1_camera.set_height(240)
-# TXT_M_USB1_1_camera.set_width(320)
-# TXT_M_USB1_1_camera.set_fps(30)
-# TXT_M_USB1_1_camera.start()
+TXT_M_USB1_1_camera.set_rotate(False)
+TXT_M_USB1_1_camera.set_height(240)
+TXT_M_USB1_1_camera.set_width(320)
+TXT_M_USB1_1_camera.set_fps(30)
+TXT_M_USB1_1_camera.start()
 
-# services.camera_stream = CameraStreamServer(TXT_M_USB1_1_camera)
+services.camera_stream = CameraStreamServer(TXT_M_USB1_1_camera)
 
-# while True:
-#     try:
-#         command = state.command_queue.get(timeout=1)
-#     except Exception:
-#         continue
+while True:
+    try:
+        command = state.command_queue.get(timeout=1)
+    except Exception:
+        continue
     
-#     print(command)
-#     handler = COMMAND_MAP.get(command)
-#     if handler:
-#         t = threading.Thread(target=handler, daemon=True)
-#         t.start()
-#         t.join()
-#     else:
-#         print("Unknown command:", command)
+    print(command)
+    handler = COMMAND_MAP.get(command)
+    if handler:
+        t = threading.Thread(target=handler, daemon=True)
+        t.start()
+        t.join()
+    else:
+        print("Unknown command:", command)
 
 
 # def pause():
@@ -90,19 +90,19 @@ COMMAND_MAP = {
 # print("=== Cardinal directions ===")
 
 # print("Forward")
-# commands.move_for_seconds(commands.move_forward,  motors_dict, 1.5, speed=260)
+# commands.move_for_seconds(commands.move_forward,  motors_dict, 10, speed=260)
 # pause()
 
 # print("Backward")
-# commands.move_for_seconds(commands.move_backward, motors_dict, 1.5, speed=260)
+# commands.move_for_seconds(commands.move_backward, motors_dict, 10, speed=260)
 # pause()
 
 # print("Strafe right")
-# commands.move_for_seconds(commands.strafe_right,  motors_dict, 1.5, speed=260)
+# commands.move_for_seconds(commands.strafe_right,  motors_dict, 10, speed=260)
 # pause()
 
 # print("Strafe left")
-# commands.move_for_seconds(commands.strafe_left,   motors_dict, 1.5, speed=260)
+# commands.move_for_seconds(commands.strafe_left,   motors_dict, 10, speed=260)
 # pause()
 
 # # ── 2. Rotations ──────────────────────────────────────────────────────────────
@@ -120,44 +120,44 @@ COMMAND_MAP = {
 # print("=== Diagonals ===")
 
 # print("Diagonal front-right")
-# commands.move_for_seconds(commands.move_diagonal_front_right, motors_dict, 1.2, speed=260)
+# commands.move_for_seconds(commands.move_diagonal_front_right, motors_dict, 10, speed=260)
 # pause()
 
 # print("Diagonal front-left")
-# commands.move_for_seconds(commands.move_diagonal_front_left,  motors_dict, 1.2, speed=260)
+# commands.move_for_seconds(commands.move_diagonal_front_left,  motors_dict, 10, speed=260)
 # pause()
 
 # print("Diagonal rear-right")
-# commands.move_for_seconds(commands.move_diagonal_rear_right,  motors_dict, 1.2, speed=260)
+# commands.move_for_seconds(commands.move_diagonal_rear_right,  motors_dict, 10, speed=260)
 # pause()
 
 # print("Diagonal rear-left")
-# commands.move_for_seconds(commands.move_diagonal_rear_left,   motors_dict, 1.2, speed=260)
+# commands.move_for_seconds(commands.move_diagonal_rear_left,   motors_dict, 10, speed=260)
 # pause()
 
 # # ── 4. Arc turns ──────────────────────────────────────────────────────────────
 # print("=== Arc turns ===")
 
 # print("Arc turn right (gentle, ratio=0.3)")
-# commands.move_for_seconds(commands.arc_turn_right, motors_dict, 1.5, speed=260, turn_ratio=0.3)
+# commands.move_for_seconds(commands.arc_turn_right, motors_dict, 10, speed=260, turn_ratio=0.3)
 # pause()
 
 # print("Arc turn left (gentle, ratio=0.3)")
-# commands.move_for_seconds(commands.arc_turn_left,  motors_dict, 1.5, speed=260, turn_ratio=0.3)
+# commands.move_for_seconds(commands.arc_turn_left,  motors_dict, 10, speed=260, turn_ratio=0.3)
 # pause()
 
 # print("Arc turn right (sharp, ratio=0.7)")
-# commands.move_for_seconds(commands.arc_turn_right, motors_dict, 1.5, speed=260, turn_ratio=0.7)
+# commands.move_for_seconds(commands.arc_turn_right, motors_dict, 10, speed=260, turn_ratio=0.7)
 # pause()
 
 # print("Arc turn left (sharp, ratio=0.7)")
-# commands.move_for_seconds(commands.arc_turn_left,  motors_dict, 1.5, speed=260, turn_ratio=0.7)
+# commands.move_for_seconds(commands.arc_turn_left,  motors_dict, 10, speed=260, turn_ratio=0.7)
 # pause()
 
-# # ── 5. Speed ramp ─────────────────────────────────────────────────────────────
+# # ── 10. Speed ramp ─────────────────────────────────────────────────────────────
 # print("=== Speed ramp (forward) ===")
 
-# for spd in [100, 200, 300, 400, 512]:
+# for spd in [100, 200, 300, 400, 1012]:
 #     print("  Forward speed={}".format(spd))
 #     commands.move_for_seconds(commands.move_forward, motors_dict, 0.8, speed=spd)
 #     pause()
@@ -174,7 +174,7 @@ COMMAND_MAP = {
 
 # for label, fn in square_moves:
 #     print("  {}".format(label))
-#     commands.move_for_seconds(fn, motors_dict, 1.2, speed=260)
+#     commands.move_for_seconds(fn, motors_dict, 10, speed=260)
 #     pause()
 
 # # ── 7. X pattern (diagonals) ──────────────────────────────────────────────────

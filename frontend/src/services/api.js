@@ -136,7 +136,7 @@ export async function sendMovementCommand(movement, duration) {
   const res = await fetch(`${BASE}/car/control/command/movement`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ movement, duration }),
+    body: JSON.stringify({ command: movement }),  // ← was "movement", duration dropped
   });
   if (!res.ok) throw new Error(`Movement command failed: ${res.status}`);
   return res.json();

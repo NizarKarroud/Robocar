@@ -1,12 +1,15 @@
 import time
 import state
 import math
+from datetime import datetime, timezone
+from mqtt_handlers import canonical_json
+
 # ── Robot physical parameters ────────────────────────────────────────────────
-R  = 2.75   # Wheel radius (cm)
-L  = 18.0   # Front-to-rear axle distance (cm)
-W  = 22.6   # Left-to-right wheel distance (cm)
-LX = L / 2  # 9.0  cm
-LY = W / 2  # 11.3 cm
+R  = 2.75
+L  = 18.0
+W  = 22.6
+LX = L / 2
+LY = W / 2
 
 def stop_motors(motors_dict):
     m = motors_dict
@@ -19,39 +22,29 @@ def stop_motors(motors_dict):
     m['M3'].stop_sync()
     m['M4'].stop_sync()
 
-
-
-
-
-
 def motors_mecanum(motors_dict, fl, fr, rl, rr):
     M2_BOOST = 30
     m = motors_dict
-
     fr_boosted = max(-512, min(512, fr + (M2_BOOST if fr >= 0 else -M2_BOOST)))
-
     m['M1'].set_speed(abs(fl),         m['CW']  if fl         >= 0 else m['CCW'])
     m['M2'].set_speed(abs(fr_boosted), m['CCW'] if fr_boosted >= 0 else m['CW'])
     m['M3'].set_speed(abs(rl),         m['CCW'] if rl         >= 0 else m['CW'])
     m['M4'].set_speed(abs(rr),         m['CCW'] if rr         >= 0 else m['CW'])
     m['M1'].start()
-    m['M2'].start()    
-    m['M3'].start()    
+    m['M2'].start()
+    m['M3'].start()
     m['M4'].start()
-    
+
 def motors_run(motors_dict, left_speed, right_speed):
     motors_mecanum(motors_dict, left_speed, right_speed, left_speed, right_speed)
 
-
-
 def compute_wheel_speeds(vx, vy, omega):
-    k = LX + LY  # 20.3 cm
+    k = LX + LY
     w1_fr = (1 / R) * ( vx - vy - k * omega)
     w2_fl = (1 / R) * ( vx + vy + k * omega)
     w3_rl = (1 / R) * ( vx - vy + k * omega)
     w4_rr = (1 / R) * ( vx + vy - k * omega)
     return w1_fr, w2_fl, w3_rl, w4_rr
-
 
 def _scale_to_pwm(wheel_speeds, max_pwm=512):
     max_speed = max(abs(w) for w in wheel_speeds)
@@ -60,14 +53,10 @@ def _scale_to_pwm(wheel_speeds, max_pwm=512):
     scale = max_pwm / max_speed
     return tuple(int(w * scale) for w in wheel_speeds)
 
-
 def drive(motors_dict, vx, vy, omega, max_pwm=512):
     speeds = compute_wheel_speeds(vx, vy, omega)
     fr, fl, rl, rr = _scale_to_pwm(speeds, max_pwm)
     motors_mecanum(motors_dict, fl, fr, rl, rr)
-
-
-# ── Named movement functions ──────────────────────────────────────────────────
 
 def move_forward(motors_dict, speed=260):
     drive(motors_dict, vx=speed, vy=0, omega=0)
@@ -105,25 +94,22 @@ def arc_turn_right(motors_dict, speed=260, turn_ratio=0.5):
 def arc_turn_left(motors_dict, speed=260, turn_ratio=0.5):
     drive(motors_dict, vx=speed, vy=0, omega=speed * turn_ratio)
 
-
-# ── Timed helper ──────────────────────────────────────────────────────────────
-
 def move_for_seconds(fn, motors_dict, duration, **kwargs):
     fn(motors_dict, **kwargs)
     time.sleep(duration)
     stop_motors(motors_dict)
 
 
-# ── Line follower (unchanged) ─────────────────────────────────────────────────
+# ── Line follower ─────────────────────────────────────────────────────────────
+
 def run_follow_line(motors_dict, trail_sensors_dict):
-    BASE_SPEED       = 300    # un peu moins vite = plus stable
-    TURN_DELTA_RIGHT = 110    # correction plus douce
-    TURN_DELTA_LEFT  = 130    # correction plus douce
-    RECOVER_SPEED    = 200    # recovery plus douce
+    BASE_SPEED       = 300
+    TURN_DELTA_RIGHT = 110
+    TURN_DELTA_LEFT  = 130
+    RECOVER_SPEED    = 200
 
     print("Starting line follow")
     state.command_event.clear()
-
     last_direction = 0
 
     while not state.command_event.is_set():
@@ -131,34 +117,54 @@ def run_follow_line(motors_dict, trail_sensors_dict):
         i8 = trail_sensors_dict['right'].get_state()
 
         if i7 == 0 and i8 == 0:
-            motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
+            left, right = BASE_SPEED, BASE_SPEED
+            motors_run(motors_dict, left, right)
 
         elif i7 == 0 and i8 == 1:
-            motors_run(motors_dict, BASE_SPEED - TURN_DELTA_LEFT, BASE_SPEED + TURN_DELTA_LEFT)
+            left, right = BASE_SPEED - TURN_DELTA_LEFT, BASE_SPEED + TURN_DELTA_LEFT
+            motors_run(motors_dict, left, right)
             last_direction = 1
 
         elif i7 == 1 and i8 == 0:
-            motors_run(motors_dict, BASE_SPEED + TURN_DELTA_RIGHT, BASE_SPEED - TURN_DELTA_RIGHT)
+            left, right = BASE_SPEED + TURN_DELTA_RIGHT, BASE_SPEED - TURN_DELTA_RIGHT
+            motors_run(motors_dict, left, right)
             last_direction = -1
 
         else:
             if last_direction >= 0:
-                motors_run(motors_dict, -RECOVER_SPEED, RECOVER_SPEED)
+                left, right = -RECOVER_SPEED, RECOVER_SPEED
             else:
-                motors_run(motors_dict, RECOVER_SPEED, -RECOVER_SPEED)
+                left, right = RECOVER_SPEED, -RECOVER_SPEED
+            motors_run(motors_dict, left, right)
 
-        time.sleep(0.015)    # un peu plus de temps entre chaque lecture
+        state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "mode": "follow_line",
+            "sensors": {
+                "sensor_left":  i7,
+                "sensor_right": i8,
+            },
+            "command": {
+                "left_pwm":  left,
+                "right_pwm": right
+            }
+        }))
+
+        time.sleep(0.015)
 
     stop_motors(motors_dict)
     print("Line follow stopped")
 
+
+# ── Wall follower ─────────────────────────────────────────────────────────────
+
 def run_follow_wall(motors_dict, dist_sensor_dict, target_dist=15.0):
-    BASE_SPEED       = 220
-    FRONT_DIST       = 40.0
-    FRONT_TRIGGER_CM = 30.0
-    MIN_TURN_TIME    = 0.8
-    PARALLEL_TOL_CM  = 2.0
-    DISTANCE_CAPTEURS = 10.0   # distance physique entre tes deux capteurs droite (cm) — à mesurer
+    BASE_SPEED        = 220
+    FRONT_DIST        = 40.0
+    FRONT_TRIGGER_CM  = 30.0
+    MIN_TURN_TIME     = 0.8
+    PARALLEL_TOL_CM   = 2.0
+    DISTANCE_CAPTEURS = 10.0
     K_DIST  = 80.0
     K_ANGLE = 60.0
 
@@ -167,13 +173,12 @@ def run_follow_wall(motors_dict, dist_sensor_dict, target_dist=15.0):
 
     mode       = "FOLLOW"
     turn_start = 0.0
-
     hist_front = [target_dist] * 3
     hist_rear  = [target_dist] * 3
 
     while not state.command_event.is_set():
-        d_front_raw = dist_sensor_dict['right'].get_distance()   # capteur droit avant
-        d_rear_raw  = dist_sensor_dict['back'].get_distance()    # capteur droit arrière
+        d_front_raw = dist_sensor_dict['right'].get_distance()
+        d_rear_raw  = dist_sensor_dict['back'].get_distance()
 
         hist_front.pop(0); hist_front.append(d_front_raw)
         hist_rear.pop(0);  hist_rear.append(d_rear_raw)
@@ -203,7 +208,8 @@ def run_follow_wall(motors_dict, dist_sensor_dict, target_dist=15.0):
             print("FOLLOW | left={} right={} front={:.1f}cm".format(left, right, d_front_sensor))
 
         else:  # TURN
-            motors_run(motors_dict, -BASE_SPEED, BASE_SPEED)   # rotation sur place
+            left, right = -BASE_SPEED, BASE_SPEED
+            motors_run(motors_dict, left, right)
 
             parallel_error = abs(d_front_raw - d_rear_raw)
             enough_time    = (time.time() - turn_start) >= MIN_TURN_TIME
@@ -214,23 +220,33 @@ def run_follow_wall(motors_dict, dist_sensor_dict, target_dist=15.0):
             print("TURN | front={:.1f}cm rear={:.1f}cm e_par={:.2f}".format(
                 d_front_raw, d_rear_raw, parallel_error))
 
+        state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "mode": "follow_wall",
+            "sensors": {
+                "d_front": d_front_sensor,
+                "d_right": d_front_raw,
+                "d_back":  d_rear_raw,
+            },
+            "command": {
+                "left_pwm":  left,
+                "right_pwm": right
+            }
+        }))
+
         time.sleep(0.02)
 
     stop_motors(motors_dict)
     print("Wall follow stopped")
-# --- 4.3 Top-down : machine a etats -------------------------------------------
-#
-# Etats :
-# FORWARD  : avance tout droit
-# TURN     : obstacle devant, tourne a gauche
-# RECOVER  : reprend la direction apres evitement
+
+
+# ── Top-down obstacle avoidance ───────────────────────────────────────────────
 
 STATE_FORWARD = "FORWARD"
 STATE_TURN    = "TURN"
 STATE_RECOVER = "RECOVER"
 
 def _read_avg(sensor, n=3):
-    """Moyenne de n lectures pour filtrer le bruit."""
     readings = []
     for _ in range(n):
         readings.append(sensor.get_distance())
@@ -284,45 +300,52 @@ def run_avoid_topdown(motors_dict, dist_sensor_dict):
         # --- Actions ---
         if current_state == STATE_FORWARD:
             if d_right < SIDE_DIST:
-                motors_run(motors_dict, BASE_SPEED - 50, BASE_SPEED + 50)
+                left, right = BASE_SPEED - 50, BASE_SPEED + 50
+                motors_run(motors_dict, left, right)
             elif d_left < SIDE_DIST:
-                motors_run(motors_dict, BASE_SPEED + 50, BASE_SPEED - 50)
+                left, right = BASE_SPEED + 50, BASE_SPEED - 50
+                motors_run(motors_dict, left, right)
             else:
-                motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
+                left, right = BASE_SPEED, BASE_SPEED
+                motors_run(motors_dict, left, right)
 
         elif current_state == STATE_TURN:
             if turn_direction == 1:
-                motors_run(motors_dict,
-                           BASE_SPEED + TURN_SPEED,
-                           BASE_SPEED - TURN_SPEED)
+                left, right = BASE_SPEED + TURN_SPEED, BASE_SPEED - TURN_SPEED
+                motors_run(motors_dict, left, right)
             else:
-                motors_run(motors_dict,
-                           BASE_SPEED - TURN_SPEED,
-                           BASE_SPEED + TURN_SPEED)
+                left, right = BASE_SPEED - TURN_SPEED, BASE_SPEED + TURN_SPEED
+                motors_run(motors_dict, left, right)
 
         elif current_state == STATE_RECOVER:
-            motors_run(motors_dict, BASE_SPEED, BASE_SPEED)
+            left, right = BASE_SPEED, BASE_SPEED
+            motors_run(motors_dict, left, right)
+
+        state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "mode": "avoid_topdown",
+            "sensors": {
+                "d_front": d_front,
+                "d_left":  d_left,
+                "d_right": d_right,
+            },
+            "command": {
+                "left_pwm":  left,
+                "right_pwm": right
+            }
+        }))
 
         time.sleep(0.015)
 
     stop_motors(motors_dict)
     print("Top-down avoidance stopped")
 
-# --- 4.4 Bottom-up : vehicule de Braitenberg ----------------------------------
-#
-# Vehicule 2b - Fear :
-# capteur droit  -> moteur gauche  (fuit a gauche si obstacle a droite)
-# capteur gauche -> moteur droit   (fuit a droite si obstacle a gauche)
-# capteur avant  -> les deux moteurs ralentissent
+
+# ── Braitenberg ───────────────────────────────────────────────────────────────
 
 def _activation(distance_cm, max_dist=40.0, max_boost=200):
-    """
-    Proche  -> activation forte
-    Loin    -> activation faible
-    """
     distance_cm = max(0.1, min(distance_cm, max_dist))
     return int(max_boost * (1.0 - distance_cm / max_dist))
-
 
 def run_braitenberg(motors_dict, dist_sensor_dict):
     BASE_SPEED = 220
@@ -349,6 +372,21 @@ def run_braitenberg(motors_dict, dist_sensor_dict):
         right_speed = max(-512, min(512, right_speed))
 
         motors_run(motors_dict, left_speed, right_speed)
+
+        state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "mode": "braitenberg",
+            "sensors": {
+                "d_front": d_front,
+                "d_left":  d_left,
+                "d_right": d_right,
+            },
+            "command": {
+                "left_pwm":  left_speed,
+                "right_pwm": right_speed
+            }
+        }))
+
         time.sleep(0.015)
 
     stop_motors(motors_dict)

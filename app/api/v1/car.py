@@ -1,12 +1,19 @@
-
-from fastapi import Depends , APIRouter
-import json , asyncio
+from fastapi import Depends, APIRouter
+import json, asyncio
 from paho.mqtt import client as mqtt_client
 
 from app import state
-from app.schemas.car import  ConnectionRequest , ConnectionRequestMQTT , CommandFollowLine
-from app.api.deps import get_mqtt_client 
+from app.schemas.car import ConnectionRequest, ConnectionRequestMQTT, CommandFollowLine
+from app.api.deps import get_mqtt_client
 from app.services.mqtt import sign_and_publish
+from app.services.mqtt_handlers import open_session, close_session
+from app.models.models import Command
+
+
+from sqlmodel import Session
+from datetime import datetime, timezone
+from app.database.db import engine
+
 
 router = APIRouter()
 
@@ -17,10 +24,10 @@ async def control_request(
 ):
     state.pending_key = payload.car_key
     client.subscribe(f"car/{payload.car_id}/control/response")
-    
+
     mqtt_payload = ConnectionRequestMQTT(
         car_id=payload.car_id,
-        client_id = state.CLIENT_ID,
+        client_id=state.CLIENT_ID,
         timestamp=payload.timestamp
     )
 
@@ -31,7 +38,7 @@ async def control_request(
         SECRET_KEY=payload.car_key.strip().encode()
     )
     try:
-        await asyncio.wait_for(state.connection_event.wait(), timeout=15.0) 
+        await asyncio.wait_for(state.connection_event.wait(), timeout=15.0)
     except asyncio.TimeoutError:
         state.pending_key = None
         return {"status": "timeout", "message": "Car did not respond"}
@@ -39,24 +46,45 @@ async def control_request(
     if state.connection_accepted:
         client.subscribe(f"car/{payload.car_id}/map")
         client.subscribe(f"car/{payload.car_id}/control/camera/response")
-
+        client.subscribe(f"car/{payload.car_id}/telemetry")  # <--
         return {"status": "connected"}
     else:
         return {"status": "rejected"}
 
-@router.post("/control/command/follow/line")
-async def control_request(
-    payload: CommandFollowLine,
-    client: mqtt_client.Client = Depends(get_mqtt_client)
-):
 
+def _handle_command(client, payload: CommandFollowLine, topic: str, mode: str):
     payload.client_id = state.CLIENT_ID
+
+    if payload.action == "start":
+        open_session(mode)
+
+    # enregistre la commande
+    if state.active_session_id is not None:
+        with Session(engine) as db:
+            db.add(Command(
+                session_id = state.active_session_id,
+                timestamp  = datetime.now(timezone.utc).isoformat(),
+                mode       = mode,
+                action     = payload.action
+            ))
+            db.commit()
+
+    if payload.action == "stop":
+        close_session()
+
     sign_and_publish(
         client=client,
-        topic=f"car/{state.CAR_ID}/control/command/follow/line",
+        topic=topic,
         payload=payload,
         SECRET_KEY=state.active_key.encode()
     )
+
+@router.post("/control/command/follow/line")
+async def control_command_follow_line(
+    payload: CommandFollowLine,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+    _handle_command(client, payload, f"car/{state.CAR_ID}/control/command/follow/line", "follow_line")
 
 
 @router.post("/control/command/follow/wall")
@@ -64,36 +92,20 @@ async def control_command_follow_wall(
     payload: CommandFollowLine,
     client: mqtt_client.Client = Depends(get_mqtt_client)
 ):
-    payload.client_id = state.CLIENT_ID
-    sign_and_publish(
-        client=client,
-        topic=f"car/{state.CAR_ID}/control/command/follow/wall",
-        payload=payload,
-        SECRET_KEY=state.active_key.encode()
-    )
+    _handle_command(client, payload, f"car/{state.CAR_ID}/control/command/follow/wall", "follow_wall")
+
 
 @router.post("/control/command/avoid/topdown")
 async def control_command_avoid_topdown(
     payload: CommandFollowLine,
     client: mqtt_client.Client = Depends(get_mqtt_client)
 ):
-    payload.client_id = state.CLIENT_ID
-    sign_and_publish(
-        client=client,
-        topic=f"car/{state.CAR_ID}/control/command/avoid/topdown",
-        payload=payload,
-        SECRET_KEY=state.active_key.encode()
-    )
+    _handle_command(client, payload, f"car/{state.CAR_ID}/control/command/avoid/topdown", "avoid_topdown")
+
 
 @router.post("/control/command/braitenberg")
 async def control_command_braitenberg(
     payload: CommandFollowLine,
     client: mqtt_client.Client = Depends(get_mqtt_client)
 ):
-    payload.client_id = state.CLIENT_ID
-    sign_and_publish(
-        client=client,
-        topic=f"car/{state.CAR_ID}/control/command/braitenberg",
-        payload=payload,
-        SECRET_KEY=state.active_key.encode()
-    )
+    _handle_command(client, payload, f"car/{state.CAR_ID}/control/command/braitenberg", "braitenberg")

@@ -2,7 +2,7 @@ from paho.mqtt import client as mqtt_client
 import json 
 from mqtt_handlers import TOPIC_HANDLERS # type: ignore
 from tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER # type: ignore
-
+import state
 BROKER ="192.168.50.122"
 #BROKER = "192.168.137.1"
 
@@ -11,6 +11,7 @@ PORT = 8883
 
 cert_path, key_path , ca_file = get_cert_and_key()
 CAR_ID = get_cn_from_cert(cert_path)
+state.CAR_ID = CAR_ID
 
 def on_connect(client, userdata, flags, rc):
     print("Connected with code:", rc)

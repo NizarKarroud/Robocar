@@ -1,5 +1,6 @@
 import asyncio
-from paho.mqtt import client 
+from paho.mqtt import client
+from typing import Optional
 
 CLIENT_ID  = None
 TXT_IP  = None
@@ -15,4 +16,4 @@ connection_accepted: bool = False
 
 camera_event: asyncio.Event = asyncio.Event()
 
-
+active_session_id: Optional[int] = None

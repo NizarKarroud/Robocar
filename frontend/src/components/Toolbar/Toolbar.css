@@ -1,65 +1,62 @@
 .toolbar {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  gap: 7px;
+  padding: 7px 10px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
+
+.toolbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--bdr);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+/* pushes Generate Graph to the far right */
+.toolbar-spacer { flex: 1; }
 
 .tbtn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 16px;
-  border-radius: 7px;
+  gap: 5px;
+  padding: 6px 13px;
+  border-radius: 6px;
   border: 1.5px solid transparent;
   cursor: pointer;
   font-family: 'Chakra Petch', sans-serif;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  transition: all 0.15s;
+  transition: all 0.14s;
+  white-space: nowrap;
 }
 
-.tbtn--primary {
-  background: var(--cyan);
-  color: #fff;
-  border-color: var(--cyan);
-}
-.tbtn--primary:hover { opacity: 0.85; }
+/* cyan */
+.tbtn--primary.tbtn--outline { background: transparent; color: var(--cyan); border-color: var(--cyan); }
+.tbtn--primary.tbtn--outline:hover { background: color-mix(in srgb, var(--cyan) 10%, transparent); }
+.tbtn--primary.tbtn--active  { background: color-mix(in srgb, var(--cyan) 18%, transparent); color: var(--cyan); border-color: var(--cyan); }
 
-.tbtn--danger {
-  background: transparent;
-  color: var(--red);
-  border-color: var(--red);
-}
-.tbtn--danger:hover { background: rgba(200, 30, 30, 0.08); }
+/* violet */
+.tbtn--violet.tbtn--outline { background: transparent; color: #a78bfa; border-color: #7c3aed; }
+.tbtn--violet.tbtn--outline:hover { background: rgba(124,58,237,.1); }
+.tbtn--violet.tbtn--active  { background: rgba(124,58,237,.2); color: #a78bfa; border-color: #7c3aed; }
 
-/* danger + active = filled red (when running and you click Stop) */
-.tbtn--danger.tbtn--active {
-  background: color-mix(in srgb, var(--red) 18%, transparent);
-}
+/* amber */
+.tbtn--secondary { background: transparent; color: var(--amb); border-color: var(--amb); }
+.tbtn--secondary:hover { background: color-mix(in srgb, var(--amb) 8%, transparent); }
+.tbtn--secondary.tbtn--active { background: color-mix(in srgb, var(--amb) 16%, transparent); }
 
-.tbtn--secondary {
-  background: transparent;
-  color: var(--amb);
-  border-color: var(--amb);
-}
-.tbtn--secondary:hover { background: rgba(180, 100, 0, 0.08); }
+/* teal */
+.tbtn--teal { background: transparent; color: #2dd4bf; border-color: #2dd4bf; }
+.tbtn--teal:hover { background: rgba(45,212,191,.08); }
+.tbtn--teal.tbtn--active { background: rgba(45,212,191,.15); }
 
-/* secondary + active = filled amber (when follow-line is running) */
-.tbtn--secondary.tbtn--active {
-  background: color-mix(in srgb, var(--amb) 18%, transparent);
-}
-
-.tbtn--ghost {
-  background: transparent;
-  color: var(--t2);
-  border-color: var(--bdr);
-}
+/* ghost */
+.tbtn--ghost { background: transparent; color: var(--t2); border-color: var(--bdr); }
 .tbtn--ghost:hover { color: var(--t1); border-color: var(--t2); }
 
-.tbtn--disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
+/* disabled */
+.tbtn--disabled { opacity: 0.3; cursor: not-allowed; }

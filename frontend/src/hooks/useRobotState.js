@@ -74,6 +74,35 @@ function reducer(state, action) {
         ...state,
         logs: [...state.logs.slice(-19), { time: now, msg: "Follow line started" }],
       };
+    case "FOLLOW_LINE_STOP":
+      return {
+        ...state,
+        direction: "IDLE",
+        speed: 0,
+        logs: [...state.logs.slice(-19), { time: now, msg: "Follow line stopped" }],
+      };
+    case "FOLLOW_WALL":
+      return {
+        ...state,
+        logs: [...state.logs.slice(-19), { time: now, msg: "Follow wall started" }],
+      };
+    case "FOLLOW_WALL_STOP":
+      return {
+        ...state,
+        direction: "IDLE",
+        speed: 0,
+        logs: [...state.logs.slice(-19), { time: now, msg: "Follow wall stopped" }],
+      };
+    case "AVOID_TOPDOWN_START":
+      return {
+        ...state,
+        logs: [...state.logs.slice(-19), { time: now, msg: "Avoid topdown started" }],
+      };
+    case "BRAITENBERG_START":
+      return {
+        ...state,
+        logs: [...state.logs.slice(-19), { time: now, msg: "Braitenberg started" }],
+      };
     case "SERIAL_DATA":
       return {
         ...state,

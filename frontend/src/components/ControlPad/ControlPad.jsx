@@ -26,8 +26,9 @@ export default function ControlPad({ dispatch, mode, setMode, connected }) {
   const dragging = useRef(false);
   const baseRef  = useRef(null);
 
-  // Joystick only active in manual mode AND when connected
-  const enabled = connected && mode === "manual";
+  const isAnyAuto = ["avoidTopdown", "braitenberg", "following", "followingWall"].includes(mode);
+  // Joystick only active in manual mode AND when connected AND no auto algo running
+  const enabled = connected && mode === "manual" && !isAnyAuto;
 
   function getCenterOffset(e) {
     const rect = baseRef.current.getBoundingClientRect();
@@ -75,7 +76,7 @@ export default function ControlPad({ dispatch, mode, setMode, connected }) {
   }, [enabled, dispatch]);
 
   return (
-    <div className={`panel ${!connected ? "panel--locked" : ""}`}>
+    <div className={`panel ${!connected || isAnyAuto ? "panel--locked" : ""}`}>
       <div className="panel-label">Directional Control</div>
 
       <div className="joystick-wrap">
@@ -99,7 +100,7 @@ export default function ControlPad({ dispatch, mode, setMode, connected }) {
             name="drivemode"
             value="auto"
             checked={mode !== "manual"}
-            disabled={!connected}
+            disabled={!connected || isAnyAuto}
             onChange={() => { dispatch({ type: "SET_MODE_AUTO" }); setMode("idle"); }}
           />
           <span>Auto</span>
@@ -110,7 +111,7 @@ export default function ControlPad({ dispatch, mode, setMode, connected }) {
             name="drivemode"
             value="manual"
             checked={mode === "manual"}
-            disabled={!connected}
+            disabled={!connected || isAnyAuto}
             onChange={() => { dispatch({ type: "SET_MODE_MANUAL" }); setMode("manual"); }}
           />
           <span>Manual</span>

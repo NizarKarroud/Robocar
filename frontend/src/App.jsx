@@ -1,10 +1,10 @@
 import { useState } from "react";
-import Header      from "./components/Header/Header";
-import Toolbar     from "./components/Toolbar/Toolbar";
+import Header        from "./components/Header/Header";
+import Toolbar       from "./components/Toolbar/Toolbar";
 import DisplayScreen from "./components/DisplayScreen/DisplayScreen";
-import ControlPad  from "./components/ControlPad/ControlPad";
-import StatusBar   from "./components/StatusBar/StatusBar";
-import MiniCar     from "./components/MiniCar/MiniCar";
+import ControlPad    from "./components/ControlPad/ControlPad";
+import MiniCar       from "./components/MiniCar/MiniCar";
+import MovementPanel from "./components/MovementPanel/MovementPanel";
 import { useRobotState } from "./hooks/useRobotState";
 
 import "./index.css";
@@ -54,7 +54,7 @@ export default function App() {
             setMode={setMode}
             connected={connected}
           />
-          <StatusBar mode={mode} connected={connected} />
+          <MovementPanel connected={connected} mode={mode} />
           <MiniCar tirePressure={robotState.tirePressure} />
         </aside>
       </main>

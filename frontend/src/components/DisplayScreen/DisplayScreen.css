@@ -4,49 +4,6 @@
   overflow: hidden;
 }
 
-/* ── Speed strip ─────────────────────────────────── */
-.speed-strip {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--bdr);
-  flex-shrink: 0;
-}
-
-.spd-num {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 28px;
-  font-weight: 600;
-  line-height: 1;
-  transition: color 0.2s;
-  color: var(--cyan);
-}
-
-.spd-unit {
-  font-family: 'Share Tech Mono', monospace;
-  font-size: 10px;
-  color: var(--t3);
-  letter-spacing: 0.15em;
-  align-self: flex-end;
-  margin-bottom: 3px;
-}
-
-.spd-bar-wrap {
-  flex: 1;
-  height: 4px;
-  background: var(--bg4);
-  border-radius: 100px;
-  overflow: hidden;
-}
-
-.spd-bar {
-  height: 100%;
-  border-radius: 100px;
-  background: var(--cyan);
-  transition: width 0.25s, background 0.2s;
-}
-
 /* ── Camera section ──────────────────────────────── */
 .cam-section {
   display: flex;
@@ -107,7 +64,6 @@
   background: color-mix(in srgb, var(--red) 15%, transparent);
 }
 
-/* cam-body fills all remaining space; image fills it edge-to-edge */
 .cam-body {
   flex: 1;
   min-height: 0;
@@ -115,13 +71,12 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  /* no padding — image goes wall-to-wall */
 }
 
 .cam-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;   /* cover = fills the box, no black bars */
+  object-fit: cover;
   display: block;
 }
 

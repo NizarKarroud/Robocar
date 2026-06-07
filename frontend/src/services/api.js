@@ -81,3 +81,63 @@ export async function getClientStatus() {
   if (!res.ok) throw new Error(`Status fetch failed: ${res.status}`);
   return res.json();
 }
+/**
+ * POST /api/v1/car/control/command/avoid/topdown
+ * Trigger run_avoid_topdown on the car.
+ * @param {"start" | "stop"} action
+ */
+export async function sendAvoidTopdownCommand(action) {
+  const res = await fetch(`${BASE}/car/control/command/avoid/topdown`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+  if (!res.ok) throw new Error(`Avoid-topdown command failed: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * POST /api/v1/car/control/command/braitenberg
+ * Trigger run_braitenberg on the car.
+ * @param {"start" | "stop"} action
+ */
+export async function sendBraitenbergCommand(action) {
+  const res = await fetch(`${BASE}/car/control/command/braitenberg`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+  if (!res.ok) throw new Error(`Braitenberg command failed: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * POST /api/v1/car/control/command/follow/wall
+ * Trigger wall-following on the car.
+ * @param {"start" | "stop"} action
+ */
+export async function sendFollowWallCommand(action) {
+  const res = await fetch(`${BASE}/car/control/command/follow/wall`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  });
+  if (!res.ok) throw new Error(`Follow-wall command failed: ${res.status}`);
+  return res.json();
+}
+
+/**
+ * POST /api/v1/car/control/command/movement
+ * Schedule a timed movement on the car.
+ * @param {string} movement  — movement id (e.g. "forward", "rotate_cw")
+ * @param {number} duration  — duration in seconds
+ */
+export async function sendMovementCommand(movement, duration) {
+  const res = await fetch(`${BASE}/car/control/command/movement`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ movement, duration }),
+  });
+  if (!res.ok) throw new Error(`Movement command failed: ${res.status}`);
+  return res.json();
+}

@@ -19,10 +19,10 @@ const MOVEMENTS = [
 
 const DURATIONS = [10, 20, 30, 45, 60, 90, 120];
 
-export default function MovementPanel({ connected, mode }) {
+export default function MovementPanel({ connected, mode, locked: joystickLocked = false }) {
   const isAnyAuto = ["avoidTopdown", "braitenberg", "following", "followingWall"].includes(mode);
-  const locked = !connected || isAnyAuto;
-
+  const locked = !connected || isAnyAuto || joystickLocked;
+  
   const [selected,  setSelected]  = useState(null);
   const [duration,  setDuration]  = useState(30);
   const [scheduled, setScheduled] = useState(null);

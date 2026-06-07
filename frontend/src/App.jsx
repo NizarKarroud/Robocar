@@ -6,14 +6,14 @@ import ControlPad    from "./components/ControlPad/ControlPad";
 import MiniCar       from "./components/MiniCar/MiniCar";
 import MovementPanel from "./components/MovementPanel/MovementPanel";
 import { useRobotState } from "./hooks/useRobotState";
-
 import "./index.css";
 
 export default function App() {
   const { robotState, dispatch } = useRobotState();
-  const [mode,      setMode]      = useState("idle");
-  const [darkMode,  setDarkMode]  = useState(true);
-  const [connected, setConnected] = useState(false);
+  const [mode,           setMode]           = useState("idle");
+  const [darkMode,       setDarkMode]       = useState(true);
+  const [connected,      setConnected]      = useState(false);
+  const [joystickActive, setJoystickActive] = useState(false);
 
   function handleConnected() {
     setConnected(true);
@@ -53,8 +53,13 @@ export default function App() {
             mode={mode}
             setMode={setMode}
             connected={connected}
+            onDragChange={setJoystickActive}
           />
-          <MovementPanel connected={connected} mode={mode} />
+          <MovementPanel
+            connected={connected}
+            mode={mode}
+            locked={joystickActive}
+          />
           <MiniCar tirePressure={robotState.tirePressure} />
         </aside>
       </main>

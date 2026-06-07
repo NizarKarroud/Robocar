@@ -61,3 +61,9 @@ class CommandFollowLine(BaseModel):
 class CommandMovement(BaseModel):
     client_id: Optional[str] = None
     command: str  # "move_forward", "rotate_cw", etc.
+
+class CommandJoystick(BaseModel):
+    client_id: str = ""
+    vx: float = 0.0
+    vy: float = 0.0
+    omega: float = 0.0

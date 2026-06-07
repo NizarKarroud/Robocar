@@ -22,6 +22,8 @@ motors_dict = {
     'CCW': Motor.CCW,
 }
 
+state.motors_dict = motors_dict
+
 trail_sensors_dict = {
     'left':  TXT_M_I7_trail_follower,
     'right': TXT_M_I8_trail_follower,

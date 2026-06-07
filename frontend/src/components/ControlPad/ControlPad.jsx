@@ -1,34 +1,50 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import "./ControlPad.css";
+import { sendJoystickCommand } from "../../services/api";
 
 const BASE_SIZE  = 110;
 const KNOB_SIZE  = 36;
 const MAX_RADIUS = (BASE_SIZE - KNOB_SIZE) / 2;
 const DEAD_ZONE  = 8;
+const MAX_PWM    = 350;
+const SEND_INTERVAL_MS = 80;
 
-function getDirection(dx, dy) {
-  if (Math.abs(dx) < DEAD_ZONE && Math.abs(dy) < DEAD_ZONE) return null;
-  const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-  if (angle > -45   && angle <= 45)   return "TURN_RIGHT";
-  if (angle > 45    && angle <= 135)  return "MOVE_BACK";
-  if (angle > 135   || angle <= -135) return "TURN_LEFT";
-  return "MOVE_FORWARD";
-}
-
-function clampToRadius(dx, dy, radius) {
-  const dist  = Math.sqrt(dx * dx + dy * dy);
-  const scale = Math.min(dist, radius) / (dist || 1);
-  return { kx: dx * scale, ky: dy * scale };
-}
-
-export default function ControlPad({ dispatch, mode, setMode, connected }) {
+export default function ControlPad({ mode, connected, dispatch, setMode, onDragChange }) {
   const [knob, setKnob] = useState({ x: 0, y: 0 });
-  const dragging = useRef(false);
-  const baseRef  = useRef(null);
+  const dragging   = useRef(false);
+  const baseRef    = useRef(null);
+  const lastSend   = useRef(0);
+  const frameRef   = useRef(null);
+  const currentVel = useRef({ vx: 0, vy: 0, omega: 0 });
 
-  const isAnyAuto = ["avoidTopdown", "braitenberg", "following", "followingWall"].includes(mode);
-  // Joystick only active in manual mode AND when connected AND no auto algo running
-  const enabled = connected && mode === "manual" && !isAnyAuto;
+  const isAnyAuto = ["avoidTopdown","braitenberg","following","followingWall"].includes(mode);
+  const enabled   = connected && mode === "manual" && !isAnyAuto;
+
+  function toVelocity(dx, dy) {
+    const vx =  (-dy / MAX_RADIUS) * MAX_PWM;
+    const vy =  ( dx / MAX_RADIUS) * MAX_PWM;
+    return { vx, vy, omega: 0 };
+  }
+
+  const sendVelocity = useCallback(async (vx, vy, omega) => {
+    const now = Date.now();
+    if (now - lastSend.current < SEND_INTERVAL_MS) return;
+    lastSend.current = now;
+    try {
+      await sendJoystickCommand(Math.round(vx), Math.round(vy), Math.round(omega));
+    } catch (e) {
+      console.warn("Joystick send error:", e);
+    }
+  }, []);
+
+  const sendStop = useCallback(async () => {
+    lastSend.current = 0; // force send even if interval not elapsed
+    try {
+      await sendJoystickCommand(0, 0, 0);
+    } catch (e) {
+      console.warn("Joystick stop error:", e);
+    }
+  }, []);
 
   function getCenterOffset(e) {
     const rect = baseRef.current.getBoundingClientRect();
@@ -39,12 +55,23 @@ export default function ControlPad({ dispatch, mode, setMode, connected }) {
     return { dx: clientX - cx, dy: clientY - cy };
   }
 
+  function clamp(dx, dy) {
+    const dist  = Math.sqrt(dx * dx + dy * dy);
+    const scale = Math.min(dist, MAX_RADIUS) / (dist || 1);
+    return { kx: dx * scale, ky: dy * scale };
+  }
+
   function onStart(e) {
     if (!enabled) return;
+    e.preventDefault();
     dragging.current = true;
+    onDragChange?.(true);
     const { dx, dy } = getCenterOffset(e);
-    const { kx, ky } = clampToRadius(dx, dy, MAX_RADIUS);
+    const { kx, ky } = clamp(dx, dy);
     setKnob({ x: kx, y: ky });
+    const vel = toVelocity(kx, ky);
+    currentVel.current = vel;
+    sendVelocity(vel.vx, vel.vy, vel.omega);
   }
 
   useEffect(() => {
@@ -52,28 +79,47 @@ export default function ControlPad({ dispatch, mode, setMode, connected }) {
       if (!dragging.current || !enabled) return;
       e.preventDefault();
       const { dx, dy } = getCenterOffset(e);
-      const { kx, ky } = clampToRadius(dx, dy, MAX_RADIUS);
+      const { kx, ky } = clamp(dx, dy);
       setKnob({ x: kx, y: ky });
-      const dir = getDirection(dx, dy);
-      if (dir) dispatch({ type: dir });
+      if (Math.abs(kx) < DEAD_ZONE && Math.abs(ky) < DEAD_ZONE) {
+        currentVel.current = { vx: 0, vy: 0, omega: 0 };
+        sendStop(); // immediate stop when in deadzone
+      } else {
+        currentVel.current = toVelocity(kx, ky);
+      }
     }
+
     function handleUp() {
       if (!dragging.current) return;
       dragging.current = false;
+      onDragChange?.(false);
       setKnob({ x: 0, y: 0 });
-      dispatch({ type: "STOP" });
+      currentVel.current = { vx: 0, vy: 0, omega: 0 };
+      sendStop(); // immediate stop on release
     }
-    window.addEventListener("mousemove", handleMove);
-    window.addEventListener("mouseup",   handleUp);
-    window.addEventListener("touchmove", handleMove, { passive: false });
-    window.addEventListener("touchend",  handleUp);
+
+    function sendLoop() {
+      if (dragging.current) {
+        const { vx, vy, omega } = currentVel.current;
+        sendVelocity(vx, vy, omega);
+      }
+      frameRef.current = setTimeout(sendLoop, SEND_INTERVAL_MS);
+    }
+    frameRef.current = setTimeout(sendLoop, SEND_INTERVAL_MS);
+
+    window.addEventListener("mousemove",  handleMove);
+    window.addEventListener("mouseup",    handleUp);
+    window.addEventListener("touchmove",  handleMove, { passive: false });
+    window.addEventListener("touchend",   handleUp);
+
     return () => {
-      window.removeEventListener("mousemove", handleMove);
-      window.removeEventListener("mouseup",   handleUp);
-      window.removeEventListener("touchmove", handleMove);
-      window.removeEventListener("touchend",  handleUp);
+      clearTimeout(frameRef.current);
+      window.removeEventListener("mousemove",  handleMove);
+      window.removeEventListener("mouseup",    handleUp);
+      window.removeEventListener("touchmove",  handleMove);
+      window.removeEventListener("touchend",   handleUp);
     };
-  }, [enabled, dispatch]);
+  }, [enabled, sendVelocity, sendStop]);
 
   return (
     <div className={`panel ${!connected || isAnyAuto ? "panel--locked" : ""}`}>

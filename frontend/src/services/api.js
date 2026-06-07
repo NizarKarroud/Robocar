@@ -57,17 +57,8 @@ export async function requestCamera(requestType = "connection") {
   });
   if (!res.ok) throw new Error(`Camera request failed: ${res.status}`);
   return res.json();
-  // Returns: { status, message, url? }
-  // url is only present when status === "accepted"
-  // The url may point to a different host/port than localhost:8000
-  // (the car streams directly; the backend proxies via GET /camera/stream)
 }
 
-/**
- * GET /api/v1/camera/stream
- * Proxied MJPEG stream URL. Assign directly to <img src>.
- * The backend relays the car's TLS-protected camera over plain HTTP.
- */
 export const CAMERA_STREAM_URL = `${BASE}/camera/stream`;
 
 // ─── Client status ────────────────────────────────────────────────────────────
@@ -139,5 +130,15 @@ export async function sendMovementCommand(movement, duration) {
     body: JSON.stringify({ command: movement }),  // ← was "movement", duration dropped
   });
   if (!res.ok) throw new Error(`Movement command failed: ${res.status}`);
+  return res.json();
+}
+
+export async function sendJoystickCommand(vx, vy, omega) {
+  const res = await fetch(`${BASE}/car/control/command/joystick`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ vx, vy, omega }),
+  });
+  if (!res.ok) throw new Error(`Joystick command failed: ${res.status}`);
   return res.json();
 }

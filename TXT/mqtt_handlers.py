@@ -129,13 +129,13 @@ def handle_control_command_follow_line(raw: dict, client: mqtt_client.Client, CA
     validity = verify_signature(raw["data"], raw["signature"])
 
     if not validity:
-        print("nope2")
+        print("Not valide :( ")
 
         return
     client_id = raw["data"].get("client_id")
 
     if client_id != state.CLIENT_ID:
-        print("nope")
+        print("Not good client ")
         return
 
     action = raw["data"].get("action")  
@@ -243,6 +243,23 @@ def handle_control_command_movement(raw: dict, client: mqtt_client.Client, CAR_I
     state.command_event.set()
     state.command_queue.put(command)
 
+def handle_control_command_joystick(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+    validity = verify_signature(raw["data"], raw["signature"])
+    if not validity:
+        return
+
+    client_id = raw["data"].get("client_id")
+    if client_id != state.CLIENT_ID:
+        return
+
+    vx    = float(raw["data"].get("vx", 0))
+    vy    = float(raw["data"].get("vy", 0))
+    omega = float(raw["data"].get("omega", 0))
+
+    # Appel direct, pas via command_queue
+    import commands
+    motors = state.motors_dict  # voir point 3 ci-dessous
+    commands.drive(motors, vx, vy, omega, max_pwm=350)
 
 TOPIC_HANDLERS = {
     "control/request":                    handle_control_request,
@@ -252,4 +269,5 @@ TOPIC_HANDLERS = {
     "control/command/braitenberg":        handle_control_command_braitenberg,
     "control/command/movement":           handle_control_command_movement,
     "control/camera/request":             handle_control_camera_request,
+    "control/command/joystick": handle_control_command_joystick,
 }

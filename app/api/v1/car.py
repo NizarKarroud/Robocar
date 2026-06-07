@@ -3,7 +3,7 @@ import json, asyncio
 from paho.mqtt import client as mqtt_client
 
 from app import state
-from app.schemas.car import ConnectionRequest, ConnectionRequestMQTT, CommandFollowLine , CommandMovement
+from app.schemas.car import ConnectionRequest, ConnectionRequestMQTT, CommandFollowLine , CommandMovement, CommandJoystick
 from app.api.deps import get_mqtt_client
 from app.services.mqtt import sign_and_publish
 from app.services.mqtt_handlers import open_session, close_session
@@ -146,3 +146,17 @@ async def control_command_movement(
         payload=payload,
         SECRET_KEY=state.active_key.encode()
     )
+
+@router.post("/control/command/joystick")
+async def control_command_joystick(
+    payload: CommandJoystick,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+    payload.client_id = state.CLIENT_ID
+    sign_and_publish(
+        client=client,
+        topic=f"car/{state.CAR_ID}/control/command/joystick",
+        payload=payload,
+        SECRET_KEY=state.active_key.encode()
+    )
+    return {"status": "ok"}

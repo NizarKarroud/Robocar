@@ -3,7 +3,7 @@ import json, asyncio
 from paho.mqtt import client as mqtt_client
 
 from app import state
-from app.schemas.car import ConnectionRequest, ConnectionRequestMQTT, CommandFollowLine
+from app.schemas.car import ConnectionRequest, ConnectionRequestMQTT, CommandFollowLine , CommandMovement
 from app.api.deps import get_mqtt_client
 from app.services.mqtt import sign_and_publish
 from app.services.mqtt_handlers import open_session, close_session
@@ -109,3 +109,40 @@ async def control_command_braitenberg(
     client: mqtt_client.Client = Depends(get_mqtt_client)
 ):
     _handle_command(client, payload, f"car/{state.CAR_ID}/control/command/braitenberg", "braitenberg")
+
+
+MOVEMENT_COMMANDS = {
+    "move_forward", "move_backward", "strafe_right", "strafe_left",
+    "rotate_cw", "rotate_ccw",
+    "diagonal_front_right", "diagonal_front_left",
+    "diagonal_rear_right", "diagonal_rear_left",
+    "arc_right_gentle", "arc_left_gentle",
+    "arc_right_sharp", "arc_left_sharp",
+}
+
+@router.post("/control/command/movement")
+async def control_command_movement(
+    payload: CommandMovement,
+    client: mqtt_client.Client = Depends(get_mqtt_client)
+):
+    if payload.command not in MOVEMENT_COMMANDS:
+        return {"status": "error", "message": f"Unknown command: {payload.command}"}
+
+    payload.client_id = state.CLIENT_ID
+
+    if state.active_session_id is not None:
+        with Session(engine) as db:
+            db.add(Command(
+                session_id = state.active_session_id,
+                timestamp  = datetime.now(timezone.utc).isoformat(),
+                mode       = payload.command,
+                action     = "execute"
+            ))
+            db.commit()
+
+    sign_and_publish(
+        client=client,
+        topic=f"car/{state.CAR_ID}/control/command/movement",
+        payload=payload,
+        SECRET_KEY=state.active_key.encode()
+    )

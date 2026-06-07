@@ -212,6 +212,36 @@ def handle_control_command_braitenberg(raw: dict, client: mqtt_client.Client, CA
         state.command_event.set()
         state.command_queue.put("braitenberg")
 
+MOVEMENT_COMMANDS = {
+    "move_forward", "move_backward", "strafe_right", "strafe_left",
+    "rotate_cw", "rotate_ccw",
+    "diagonal_front_right", "diagonal_front_left",
+    "diagonal_rear_right", "diagonal_rear_left",
+    "arc_right_gentle", "arc_left_gentle",
+    "arc_right_sharp", "arc_left_sharp",
+}
+
+def handle_control_command_movement(raw: dict, client: mqtt_client.Client, CAR_ID: str):
+    validity = verify_signature(raw["data"], raw["signature"])
+
+    if not validity:
+        print("invalid signature")
+        return
+
+    client_id = raw["data"].get("client_id")
+    if client_id != state.CLIENT_ID:
+        print("unauthorized client")
+        return
+
+    command = raw["data"].get("command")
+
+    if command not in MOVEMENT_COMMANDS:
+        print("unknown movement command:", command)
+        return
+
+    state.command_event.set()
+    state.command_queue.put(command)
+
 
 TOPIC_HANDLERS = {
     "control/request":                    handle_control_request,
@@ -219,5 +249,6 @@ TOPIC_HANDLERS = {
     "control/command/follow/wall":        handle_control_command_follow_wall,
     "control/command/avoid/topdown":      handle_control_command_avoid_obstacle,
     "control/command/braitenberg":        handle_control_command_braitenberg,
+    "control/command/movement":           handle_control_command_movement,
     "control/camera/request":             handle_control_camera_request,
 }

@@ -96,6 +96,17 @@ def arc_turn_left(motors_dict, speed=260, turn_ratio=0.5):
 
 def move_for_seconds(fn, motors_dict, duration, **kwargs):
     fn(motors_dict, **kwargs)
+    
+    state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "mode": fn.__name__,
+        "sensors": {},
+        "command": {
+            "duration": duration,
+            "speed": kwargs.get("speed", 260)
+        }
+    }))
+    
     time.sleep(duration)
     stop_motors(motors_dict)
 

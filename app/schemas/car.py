@@ -55,3 +55,9 @@ class CommandFollowLine(BaseModel):
     action : str
     client_id: str = ""
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# dans schemas/car.py à ajouter
+class CommandMovement(BaseModel):
+    client_id: Optional[str] = None
+    command: str  # "move_forward", "rotate_cw", etc.

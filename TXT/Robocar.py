@@ -37,10 +37,24 @@ client = connect_mqtt()
 client.loop_start()
 
 COMMAND_MAP = {
-    "follow_line":   lambda: commands.run_follow_line(motors_dict, trail_sensors_dict, client, state.CAR_ID),
-    "follow_wall":   lambda: commands.run_follow_wall(motors_dict, dist_sensor_dict, client, state.CAR_ID),
-    "avoid_topdown": lambda: commands.run_avoid_topdown(motors_dict, dist_sensor_dict, client, state.CAR_ID),
-    "braitenberg":   lambda: commands.run_braitenberg(motors_dict, dist_sensor_dict, client, state.CAR_ID),
+    "follow_line":   lambda: commands.run_follow_line(motors_dict, trail_sensors_dict),
+    "follow_wall":   lambda: commands.run_follow_wall(motors_dict, dist_sensor_dict),
+    "avoid_topdown": lambda: commands.run_avoid_topdown(motors_dict, dist_sensor_dict),
+    "braitenberg":   lambda: commands.run_braitenberg(motors_dict, dist_sensor_dict),
+    "move_forward":  lambda: commands.move_for_seconds(commands.move_forward,motors_dict, 1.5, speed=260),
+    "move_backward": lambda: commands.move_for_seconds(commands.move_backward,motors_dict, 1.5, speed=260),
+    "strafe_right":lambda: commands.move_for_seconds(commands.strafe_right,motors_dict, 1.5, speed=260),
+    "strafe_left":lambda: commands.move_for_seconds(commands.strafe_left,motors_dict, 1.5, speed=260),
+    "rotate_cw":lambda: commands.move_for_seconds(commands.rotate_cw,motors_dict, 1.0, speed=200),
+    "rotate_ccw":lambda: commands.move_for_seconds(commands.rotate_ccw,motors_dict, 1.0, speed=200),
+    "diagonal_front_right":lambda: commands.move_for_seconds(commands.move_diagonal_front_right, motors_dict, 1.2, speed=260),
+    "diagonal_front_left":lambda: commands.move_for_seconds(commands.move_diagonal_front_left,  motors_dict, 1.2, speed=260),
+    "diagonal_rear_right":lambda: commands.move_for_seconds(commands.move_diagonal_rear_right,  motors_dict, 1.2, speed=260),
+    "diagonal_rear_left":lambda: commands.move_for_seconds(commands.move_diagonal_rear_left,   motors_dict, 1.2, speed=260),
+    "arc_right_gentle":lambda: commands.move_for_seconds(commands.arc_turn_right,motors_dict, 1.5, speed=260, turn_ratio=0.3),
+    "arc_left_gentle":lambda: commands.move_for_seconds(commands.arc_turn_left,motors_dict, 1.5, speed=260, turn_ratio=0.3),
+    "arc_right_sharp":lambda: commands.move_for_seconds(commands.arc_turn_right,motors_dict, 1.5, speed=260, turn_ratio=0.7),
+    "arc_left_sharp":lambda: commands.move_for_seconds(commands.arc_turn_left,motors_dict, 1.5, speed=260, turn_ratio=0.7),
 }
 
 

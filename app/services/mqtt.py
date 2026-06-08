@@ -10,6 +10,8 @@ from app import state
 
 #BROKER ="192.168.50.122"
 BROKER =  "192.168.137.1"
+#BROKER = "10.101.242.107"
+
 PORT = 8883
 
 

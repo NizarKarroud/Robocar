@@ -82,7 +82,7 @@ export default function Toolbar({ mode, setMode, dispatch, connected }) {
         disabled={busy || (isAnyAuto && !isAvoidTopdown)}
         onClick={handleAvoidTopdown}
       >
-        {isAvoidTopdown ? "◼ Topdown" : "⬆ Avoid Topdown"}
+        {isAvoidTopdown ? "◼ Topdown" : "Avoid Topdown"}
       </button>
 
       <button
@@ -90,7 +90,7 @@ export default function Toolbar({ mode, setMode, dispatch, connected }) {
         disabled={busy || (isAnyAuto && !isBraitenberg)}
         onClick={handleBraitenberg}
       >
-        {isBraitenberg ? "◼ Braitenberg" : "⚡ Braitenberg"}
+        {isBraitenberg ? "◼ Braitenberg" : "Braitenberg"}
       </button>
 
       <div className="toolbar-sep" />

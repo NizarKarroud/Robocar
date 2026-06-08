@@ -169,100 +169,95 @@ def run_follow_line(motors_dict, trail_sensors_dict):
 
 # ── Wall follower ─────────────────────────────────────────────────────────────
 
-def run_follow_wall(motors_dict, dist_sensor_dict):
-    BASE_SPEED    = 220
-    TARGET_DIST   = 12.0
-    FRONT_TRIGGER = 25.0
-    MAX_SENSOR    = 60.0
-    MIN_TURN_TIME = 0.3
-    MAX_TURN_TIME = 3.0
-    Kp            = 6.0
-    Ki            = 0.3   # élimine l'erreur statique
-    Kd            = 4.0
-    HIST_SIZE     = 5
-    I_CLAMP       = 40.0  # anti-windup
+# ── Wall follower (right wall) ────────────────────────────────────────────────
 
-    hist       = [TARGET_DIST] * HIST_SIZE
-    prev_error = 0.0
-    integral   = 0.0
+def run_follow_wall(motors_dict, distance_sensors_dict):  # renamed
+    BASE_SPEED      = 250
+    FRONT_DIST_STOP = 25
+    WALL_LOST       = 30
+    WALL_TARGET     = 12
+    Kp              = 8.0
+    U_TURN_DURATION = 1.2
 
-    print("Starting wall follow")
+    STATE_FOLLOW     = "FOLLOW"
+    STATE_TURN_LEFT  = "TURN_LEFT"
+    STATE_SEEK_RIGHT = "SEEK_RIGHT"
+    STATE_U_TURN     = "U_TURN"
+
+    current_state = STATE_FOLLOW
+    u_turn_start  = 0.0
+
+    print("Starting right wall follow")
     state.command_event.clear()
-    mode       = "FOLLOW"
-    turn_start = 0.0
 
     while not state.command_event.is_set():
-        d_front_raw = dist_sensor_dict['front'].get_distance()
-        d_right_raw = dist_sensor_dict['right'].get_distance()
+        dist_front = min(distance_sensors_dict['front'].get_distance(), 60)
+        dist_right = min(distance_sensors_dict['right'].get_distance(), 60)
 
-        d_front = min(d_front_raw, MAX_SENSOR)
-        d_right = min(d_right_raw, MAX_SENSOR)
+        if current_state == STATE_FOLLOW:
+            if dist_front < FRONT_DIST_STOP:
+                current_state = STATE_TURN_LEFT
+                print("→ TURN_LEFT")
+            elif dist_right > WALL_LOST:
+                current_state = STATE_U_TURN
+                u_turn_start  = time.time()
+                print("→ U_TURN")
 
-        hist.pop(0)
-        hist.append(d_right)
-        sorted_hist = sorted(hist)
-        d_right_med = sorted_hist[HIST_SIZE // 2]
+        elif current_state == STATE_TURN_LEFT:
+            if dist_front >= FRONT_DIST_STOP:
+                current_state = STATE_FOLLOW
+                print("→ FOLLOW")
 
-        if mode == "FOLLOW":
-            error    = TARGET_DIST - d_right_med
-            integral = max(-I_CLAMP, min(I_CLAMP, integral + error))
-            d_error  = error - prev_error
-            correction = int(Kp * error + Ki * integral + Kd * d_error)
+        elif current_state == STATE_U_TURN:
+            elapsed = time.time() - u_turn_start
+            if elapsed >= U_TURN_DURATION and dist_right <= WALL_LOST:
+                current_state = STATE_FOLLOW
+                print("→ FOLLOW (U-turn done)")
+            elif dist_front < FRONT_DIST_STOP:
+                current_state = STATE_TURN_LEFT
+                print("→ TURN_LEFT")
+
+        elif current_state == STATE_SEEK_RIGHT:
+            if dist_right <= WALL_LOST:
+                current_state = STATE_FOLLOW
+                print("→ FOLLOW")
+
+        if current_state == STATE_FOLLOW:
+            error      = dist_right - WALL_TARGET
+            correction = int(Kp * error)
             correction = max(-150, min(150, correction))
-            prev_error = error
+            left  = BASE_SPEED + correction
+            right = BASE_SPEED - correction
+            print("FOLLOW right={:.1f}  err={:.1f}  corr={}".format(dist_right, error, correction))
 
-            left_spd  = max(50, min(400, BASE_SPEED + correction))
-            right_spd = max(50, min(400, BASE_SPEED - correction))
+        elif current_state == STATE_TURN_LEFT:
+            left, right = -260, 260
 
-            print("[FOLLOW] front={:.1f} right={:.1f} err={:.1f} I={:.1f} derr={:.1f} L={} R={}".format(
-                d_front, d_right_med, error, integral, d_error, left_spd, right_spd))
+        elif current_state == STATE_U_TURN:
+            left, right = 280, 60
 
-            motors_run(motors_dict, left_spd, right_spd)
+        elif current_state == STATE_SEEK_RIGHT:
+            left, right = 280, 120
 
-            if d_front < FRONT_TRIGGER:
-                print("OBSTACLE -> TURNING")
-                mode       = "TURN"
-                turn_start = time.time()
-                hist       = [d_right] * HIST_SIZE  # valeur réelle, pas TARGET
-                prev_error = 0.0
-                integral   = 0.0  # reset integral au virage
+        motors_run(motors_dict, left, right)
 
-        else:  # TURN
-            left_spd, right_spd = 80, 220
-            motors_run(motors_dict, left_spd, right_spd)
-            elapsed = time.time() - turn_start
-            print("[TURN] front={:.1f} right={:.1f} t={:.2f}".format(
-                d_front, d_right_raw, elapsed))
-            if elapsed >= MIN_TURN_TIME and d_front > FRONT_TRIGGER:
-                print("WALL ACQUIRED -> FOLLOW")
-                hist       = [d_right] * HIST_SIZE
-                prev_error = 0.0
-                integral   = 0.0
-                mode       = "FOLLOW"
-            elif elapsed > MAX_TURN_TIME:
-                print("TURN TIMEOUT -> FOLLOW")
-                hist       = [d_right] * HIST_SIZE
-                prev_error = 0.0
-                integral   = 0.0
-                mode       = "FOLLOW"
+        state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "mode": "follow_wall",
+            "sensors": {
+                "d_front": dist_front,
+                "d_right": dist_right,
+            },
+            "command": {
+                "left_pwm":  left,
+                "right_pwm": right
+            }
+        }))
 
-        # state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
-        #     "timestamp": datetime.now(timezone.utc).isoformat(),
-        #     "mode": "follow_wall",
-        #     "sensors": {
-        #         "d_front": d_front,
-        #         "d_right": d_right_med,
-        #     },
-        #     "command": {
-        #         "left_pwm":  left_spd,
-        #         "right_pwm": right_spd
-        #     }
-        # }))
-
-        time.sleep(0.02)
+        time.sleep(0.015)
 
     stop_motors(motors_dict)
-    print("Wall follow stopped")
+    print("Right wall follow stopped pls for the love of god khdm ")
 
 # ── Top-down obstacle avoidance ───────────────────────────────────────────────
 
@@ -353,51 +348,63 @@ def run_avoid_topdown(motors_dict, dist_sensor_dict):
 
 # ── Braitenberg ───────────────────────────────────────────────────────────────
 
-def _activation(distance_cm, max_dist=40.0, max_boost=200):
-    distance_cm = max(0.1, min(distance_cm, max_dist))
-    return int(max_boost * (1.0 - distance_cm / max_dist))
+def _activation(distance_cm, safe_dist):
+    if distance_cm >= safe_dist:
+        return 0.0
+    ratio = 1.0 - (distance_cm / safe_dist)
+    return ratio ** 2
+
+# ── Braitenberg vehicle — 3 capteurs (front, right, left) ────────────────────
 
 def run_braitenberg(motors_dict, dist_sensor_dict):
-    BASE_SPEED = 220
-    MAX_DIST   = 40.0
+    BASE_SPEED    = 220
+    MAX_SENSOR    = 60.0
+    MIN_DIST      = 3.0
+    TARGET_DIST   = 12.0
 
-    print("Starting Braitenberg vehicle")
+    # Poids Braitenberg
+    # front  → inhibe les deux roues symétriquement
+    W_FRONT_LEFT  = -350.0
+    W_FRONT_RIGHT = -350.0
+    # right  → excite gauche, inhibe droite  (fuit le mur droit)
+    W_RIGHT_LEFT  =  180.0
+    W_RIGHT_RIGHT = -180.0
+    # left   → excite droite, inhibe gauche  (fuit le mur gauche)
+    W_LEFT_LEFT   = -180.0
+    W_LEFT_RIGHT  =  180.0
+
+    print("Starting Braitenberg (3 sensors)")
     state.command_event.clear()
 
     while not state.command_event.is_set():
-        d_front = dist_sensor_dict['front'].get_distance()
-        d_left  = dist_sensor_dict['left'].get_distance()
-        d_right = dist_sensor_dict['right'].get_distance()
+        d_front = max(MIN_DIST, min(dist_sensor_dict['front'].get_distance(), MAX_SENSOR))
+        d_right = max(MIN_DIST, min(dist_sensor_dict['right'].get_distance(), MAX_SENSOR))
+        d_left  = max(MIN_DIST, min(dist_sensor_dict['left'].get_distance(),  MAX_SENSOR))
 
-        # --- Activation par capteur ---
-        act_front = _activation(d_front, MAX_DIST)
-        act_left  = _activation(d_left,  MAX_DIST)
-        act_right = _activation(d_right, MAX_DIST)
+        # Conversion en signal de proximité
+        prox_front = 1.0 / d_front
+        prox_right = (1.0 / d_right) - (1.0 / TARGET_DIST)  # >0 trop près, <0 trop loin
+        prox_left  = (1.0 / d_left)  - (1.0 / TARGET_DIST)
 
-        # --- Connexions ipsilaterales ---
-        left_speed  = BASE_SPEED + act_right - act_front
-        right_speed = BASE_SPEED + act_left  - act_front
+        # Somme pondérée
+        left_spd  = (BASE_SPEED
+                     + W_FRONT_LEFT  * prox_front
+                     + W_RIGHT_LEFT  * prox_right
+                     + W_LEFT_LEFT   * prox_left)
 
-        left_speed  = max(-512, min(512, left_speed))
-        right_speed = max(-512, min(512, right_speed))
+        right_spd = (BASE_SPEED
+                     + W_FRONT_RIGHT * prox_front
+                     + W_RIGHT_RIGHT * prox_right
+                     + W_LEFT_RIGHT  * prox_left)
 
-        motors_run(motors_dict, left_speed, right_speed)
+        left_spd  = int(max(0, min(512, left_spd)))
+        right_spd = int(max(0, min(512, right_spd)))
 
-        # state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
-        #     "timestamp": datetime.now(timezone.utc).isoformat(),
-        #     "mode": "braitenberg",
-        #     "sensors": {
-        #         "d_front": d_front,
-        #         "d_left":  d_left,
-        #         "d_right": d_right,
-        #     },
-        #     "command": {
-        #         "left_pwm":  left_speed,
-        #         "right_pwm": right_speed
-        #     }
-        # }))
+        print("[BRAITENBERG] f={:.1f} r={:.1f} l={:.1f} | pf={:.3f} pr={:.3f} pl={:.3f} | L={} R={}".format(
+            d_front, d_right, d_left, prox_front, prox_right, prox_left, left_spd, right_spd))
 
-        time.sleep(0.015)
+        motors_run(motors_dict, left_spd, right_spd)
+        time.sleep(0.02)
 
     stop_motors(motors_dict)
     print("Braitenberg stopped")

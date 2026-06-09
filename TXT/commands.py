@@ -97,15 +97,15 @@ def arc_turn_left(motors_dict, speed=260, turn_ratio=0.5):
 def move_for_seconds(fn, motors_dict, duration, **kwargs):
     fn(motors_dict, **kwargs)
     
-    state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "mode": fn.__name__,
-        "sensors": {},
-        "command": {
-            "duration": duration,
-            "speed": kwargs.get("speed", 260)
-        }
-    }))
+    # state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
+    #     "timestamp": datetime.now(timezone.utc).isoformat(),
+    #     "mode": fn.__name__,
+    #     "sensors": {},
+    #     "command": {
+    #         "duration": duration,
+    #         "speed": kwargs.get("speed", 260)
+    #     }
+    # }))
     
     time.sleep(duration)
     stop_motors(motors_dict)
@@ -172,14 +172,14 @@ def run_follow_line(motors_dict, trail_sensors_dict):
 # ── Wall follower (right wall) ────────────────────────────────────────────────
 
 def run_follow_wall(motors_dict, distance_sensors_dict):
-    BASE_SPEED       = 250
-    FRONT_DIST_STOP  = 22
+    BASE_SPEED       = 300
+    FRONT_DIST_STOP  = 24
     WALL_LOST        = 40
     WALL_LOST_FRAMES = 8
     WALL_TARGET      = 12
     Kp               = 8.0
-    U_TURN_DURATION  = 1.2
-    ROTATE_SPEED     = 260
+    U_TURN_DURATION  = 1.4
+    ROTATE_SPEED     = 340
     TURN_LEFT_MIN_MS = 400   # durée minimum de rotation avant de checker front
     FOLLOW_SETTLE_MS = 300   # délai après TURN_LEFT avant de pouvoir trigger U_TURN
 
@@ -263,7 +263,7 @@ def run_follow_wall(motors_dict, distance_sensors_dict):
 
     stop_motors(motors_dict)
     print("Right wall follow stopped")
-
+ 
 # ── Top-down obstacle avoidance ───────────────────────────────────────────────
 
 STATE_FORWARD = "FORWARD"
@@ -413,3 +413,64 @@ def run_braitenberg(motors_dict, dist_sensor_dict):
 
     stop_motors(motors_dict)
     print("Braitenberg stopped")
+
+
+def move_figure_eight(motors_dict, lambda_cm=29.8, omega_traj=0.30, duration=20.0, mode="standard"):
+    
+    """
+    Lemniscate de Bernoulli
+    mode: "standard" | "cap_fixe" | "tomographie"
+    """
+    print("Starting figure eight - mode={}".format(mode))
+    state.command_event.clear()
+
+    t  = 0.0
+    dt = 0.05  # 20Hz
+
+    while not state.command_event.is_set() and t < duration:
+        # ── Vitesses inertielles ──────────────────────────────────────────
+        x_dot = lambda_cm * omega_traj * math.cos(omega_traj * t)
+        y_dot = lambda_cm * omega_traj * math.cos(2 * omega_traj * t)
+
+        if mode == "standard":
+            # orientation tangente à la trajectoire
+            psi = math.atan2(y_dot, x_dot)
+
+            vx =  x_dot * math.cos(psi) + y_dot * math.sin(psi)
+            vy = -x_dot * math.sin(psi) + y_dot * math.cos(psi)  # ≈ 0 par construction
+
+            # dérivée de psi — sécurisée contre division par zéro
+            denom = x_dot**2 + y_dot**2
+            if abs(denom) < 1e-6:
+                omega = 0.0
+            else:
+                x_ddot = -lambda_cm * omega_traj**2 * math.sin(omega_traj * t)
+                y_ddot = -2 * lambda_cm * omega_traj**2 * math.sin(2 * omega_traj * t)
+                omega  = (x_dot * y_ddot - y_dot * x_ddot) / denom
+
+        elif mode == "cap_fixe":
+            # psi = 0 → pas de rotation, vitesses inertielles = vitesses robot
+            vx    = x_dot
+            vy    = y_dot
+            omega = 0.0
+
+        elif mode == "tomographie":
+            # rotation continue à omega_traj, projection avec psi = omega_traj * t
+            psi = omega_traj * t
+            vx  = lambda_cm * omega_traj * (
+                math.cos(omega_traj * t) * math.cos(psi) +
+                math.cos(2 * omega_traj * t) * math.sin(psi)
+            )
+            vy  = lambda_cm * omega_traj * (
+                -math.cos(omega_traj * t) * math.sin(psi) +
+                math.cos(2 * omega_traj * t) * math.cos(psi)
+            )
+            omega = omega_traj  # constante
+
+        drive(motors_dict, vx=vx, vy=vy, omega=omega)
+
+        t  += dt
+        time.sleep(dt)
+
+    stop_motors(motors_dict)
+    print("Figure eight stopped")

@@ -160,3 +160,7 @@ async def control_command_joystick(
         SECRET_KEY=state.active_key.encode()
     )
     return {"status": "ok"}
+
+@router.get("/sensors")
+def get_sensors():
+    return state.last_sensors

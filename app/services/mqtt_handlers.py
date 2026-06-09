@@ -33,25 +33,13 @@ def handle_control_camera_response(payload: dict):
         state.camera_event.set()
 
 def handle_telemetry(payload: dict):
-    if state.active_session_id is None:
-        return
-
     data = payload.get("data", payload)
-
-    with Session(engine) as db:
-        row = Telemetry(
-            session_id = state.active_session_id,
-            timestamp  = data.get("timestamp"),
-            mode       = data.get("mode"),
-            d_front    = data.get("sensors", {}).get("d_front"),
-            d_left     = data.get("sensors", {}).get("d_left"),
-            d_right    = data.get("sensors", {}).get("d_right"),
-            d_back     = data.get("sensors", {}).get("d_back"),
-            left_pwm   = data.get("command", {}).get("left_pwm"),
-            right_pwm  = data.get("command", {}).get("right_pwm"),
-        )
-        db.add(row)
-        db.commit()
+    sensors = data.get("sensors", {})
+    state.last_sensors = {
+        "left":  sensors.get("left"),   # ← pas "d_left"
+        "right": sensors.get("right"),
+        "front": sensors.get("front"),
+    }
 
 def open_session(mode: str):
     with Session(engine) as db:
@@ -74,6 +62,8 @@ def close_session():
             db.add(session)
             db.commit()
     state.active_session_id = None
+
+
 
 TOPIC_HANDLERS = {
     "control/response"        : handle_control_response,

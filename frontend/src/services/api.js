@@ -142,3 +142,9 @@ export async function sendJoystickCommand(vx, vy, omega) {
   if (!res.ok) throw new Error(`Joystick command failed: ${res.status}`);
   return res.json();
 }
+
+export async function getSensors() {
+  const res = await fetch(`${BASE}/car/sensors`);
+  if (!res.ok) throw new Error(`Sensors fetch failed: ${res.status}`);
+  return res.json(); // { left, right, front }
+}

@@ -1,30 +1,35 @@
 import "./MiniCar.css";
 
-function tireColor(val) {
+function sensorColor(val) {
   if (val === null || val === undefined) return "var(--t3)";
-  if (val >= 301) return "var(--grn)";
-  if (val >= 101) return "#aebf43";
-  if (val >= 21)  return "#ffa41cc0";
+  if (val > 60)  return "var(--grn)";
+  if (val > 20)  return "#ffa41cc0";
   return "var(--red)";
 }
 
-/**
- * MiniCar — top-view SVG car with per-corner distance/pressure readings.
- * Props:
- *   tirePressure: { fl: number|null, fr: number|null, rl: number|null, rr: number|null }
- */
-export default function MiniCar({ tirePressure = {} }) {
-  const tp = tirePressure;
+function fmt(val) {
+  return val != null ? `${val}` : "—";
+}
+
+export default function MiniCar({ sensors = {} }) {
+  const { left, right, front } = sensors ?? {};
 
   return (
     <div className="mini-car panel">
-      <div className="panel-label">Tire Distance</div>
-      <div className="tire-grid">
-        <span className="tire tire--fl" style={{ color: tireColor(tp.fl) }}>
-          {tp.fl ?? "—"}
+      <div className="panel-label">Sensors (cm)</div>
+      <div className="sensor-grid">
+
+        {/* Front — centered above car */}
+        <span className="sensor sensor--front" style={{ color: sensorColor(front) }}>
+          {fmt(front)}
         </span>
 
-        <div className="tire-car-wrap">
+        {/* Left | Car SVG | Right */}
+        <span className="sensor sensor--left" style={{ color: sensorColor(left) }}>
+          {fmt(left)}
+        </span>
+
+        <div className="sensor-car-wrap">
           <svg
             className="car-svg"
             viewBox="0 0 60 100"
@@ -58,15 +63,10 @@ export default function MiniCar({ tirePressure = {} }) {
           </svg>
         </div>
 
-        <span className="tire tire--fr" style={{ color: tireColor(tp.fr) }}>
-          {tp.fr ?? "—"}
+        <span className="sensor sensor--right" style={{ color: sensorColor(right) }}>
+          {fmt(right)}
         </span>
-        <span className="tire tire--rl" style={{ color: tireColor(tp.rl) }}>
-          {tp.rl ?? "—"}
-        </span>
-        <span className="tire tire--rr" style={{ color: tireColor(tp.rr) }}>
-          {tp.rr ?? "—"}
-        </span>
+
       </div>
     </div>
   );

@@ -261,6 +261,24 @@ def handle_control_command_joystick(raw: dict, client: mqtt_client.Client, CAR_I
     motors = state.motors_dict  # voir point 3 ci-dessous
     commands.drive(motors, vx, vy, omega, max_pwm=350)
 
+def publish_sensors(client: mqtt_client.Client, CAR_ID: str):
+    sensors = state.dist_sensor_dict
+    data = {
+        "left":  sensors["left"].get_distance(),
+        "right": sensors["right"].get_distance(),
+        "front": sensors["front"].get_distance(),
+    }
+    state.last_sensors = data
+    sign_and_publish(
+        client=client,
+        topic="car/{}/telemetry".format(CAR_ID),
+        SECRET_KEY=SECRET_KEY,
+        payload={
+            "sensors": data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+    )
+ 
 TOPIC_HANDLERS = {
     "control/request":                    handle_control_request,
     "control/command/follow/line":        handle_control_command_follow_line,

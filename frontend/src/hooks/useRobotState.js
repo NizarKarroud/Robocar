@@ -8,7 +8,7 @@ const initialState = {
   temperature: null,
   position: { x: 0, y: 0 },
   connected: false,
-  tirePressure: { fl: null, fr: null, rl: null, rr: null },
+  sensors: { left: null, right: null, front: null },
   logs: [],
 };
 

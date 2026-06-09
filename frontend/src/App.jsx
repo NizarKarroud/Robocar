@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header        from "./components/Header/Header";
 import Toolbar       from "./components/Toolbar/Toolbar";
 import DisplayScreen from "./components/DisplayScreen/DisplayScreen";
@@ -6,6 +6,7 @@ import ControlPad    from "./components/ControlPad/ControlPad";
 import MiniCar       from "./components/MiniCar/MiniCar";
 import MovementPanel from "./components/MovementPanel/MovementPanel";
 import { useRobotState } from "./hooks/useRobotState";
+import { getSensors } from "./services/api";
 import "./index.css";
 
 export default function App() {
@@ -14,6 +15,17 @@ export default function App() {
   const [darkMode,       setDarkMode]       = useState(true);
   const [connected,      setConnected]      = useState(false);
   const [joystickActive, setJoystickActive] = useState(false);
+
+  useEffect(() => {
+    if (!connected) return;
+    const id = setInterval(async () => {
+      try {
+        const s = await getSensors();
+        dispatch({ type: "UPDATE_STATE", payload: { sensors: s } });
+      } catch {}
+    }, 500);
+    return () => clearInterval(id);
+  }, [connected]);
 
   function handleConnected() {
     setConnected(true);
@@ -60,7 +72,7 @@ export default function App() {
             mode={mode}
             locked={joystickActive}
           />
-          <MiniCar tirePressure={robotState.tirePressure} />
+          <MiniCar sensors={robotState.sensors} />
         </aside>
       </main>
     </div>

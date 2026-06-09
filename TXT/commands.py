@@ -171,21 +171,27 @@ def run_follow_line(motors_dict, trail_sensors_dict):
 
 # ── Wall follower (right wall) ────────────────────────────────────────────────
 
-def run_follow_wall(motors_dict, distance_sensors_dict):  # renamed
-    BASE_SPEED      = 250
-    FRONT_DIST_STOP = 25
-    WALL_LOST       = 30
-    WALL_TARGET     = 12
-    Kp              = 8.0
-    U_TURN_DURATION = 1.2
+def run_follow_wall(motors_dict, distance_sensors_dict):
+    BASE_SPEED       = 250
+    FRONT_DIST_STOP  = 22
+    WALL_LOST        = 40
+    WALL_LOST_FRAMES = 8
+    WALL_TARGET      = 12
+    Kp               = 8.0
+    U_TURN_DURATION  = 1.2
+    ROTATE_SPEED     = 260
+    TURN_LEFT_MIN_MS = 400   # durée minimum de rotation avant de checker front
+    FOLLOW_SETTLE_MS = 300   # délai après TURN_LEFT avant de pouvoir trigger U_TURN
 
-    STATE_FOLLOW     = "FOLLOW"
-    STATE_TURN_LEFT  = "TURN_LEFT"
-    STATE_SEEK_RIGHT = "SEEK_RIGHT"
-    STATE_U_TURN     = "U_TURN"
+    STATE_FOLLOW    = "FOLLOW"
+    STATE_TURN_LEFT = "TURN_LEFT"
+    STATE_U_TURN    = "U_TURN"
 
-    current_state = STATE_FOLLOW
-    u_turn_start  = 0.0
+    current_state    = STATE_FOLLOW
+    u_turn_start     = 0.0
+    wall_lost_count  = 0
+    turn_start_time  = 0.0
+    follow_since     = time.time()   # quand on est entré en FOLLOW
 
     print("Starting right wall follow")
     state.command_event.clear()
@@ -194,70 +200,69 @@ def run_follow_wall(motors_dict, distance_sensors_dict):  # renamed
         dist_front = min(distance_sensors_dict['front'].get_distance(), 60)
         dist_right = min(distance_sensors_dict['right'].get_distance(), 60)
 
+        now = time.time()
+
+        # ── Transitions ──────────────────────────────────────────────────────
         if current_state == STATE_FOLLOW:
+            follow_elapsed_ms = (now - follow_since) * 1000
+
             if dist_front < FRONT_DIST_STOP:
-                current_state = STATE_TURN_LEFT
+                wall_lost_count = 0
+                current_state   = STATE_TURN_LEFT
+                turn_start_time = now
                 print("→ TURN_LEFT")
-            elif dist_right > WALL_LOST:
-                current_state = STATE_U_TURN
-                u_turn_start  = time.time()
-                print("→ U_TURN")
+
+            # U_TURN seulement si on est en FOLLOW depuis assez longtemps
+            # (évite de trigger pendant le settle post-TURN_LEFT)
+            elif follow_elapsed_ms > FOLLOW_SETTLE_MS and dist_right > WALL_LOST:
+                wall_lost_count += 1
+                if wall_lost_count >= WALL_LOST_FRAMES:
+                    wall_lost_count = 0
+                    current_state   = STATE_U_TURN
+                    u_turn_start    = now
+                    print("→ U_TURN")
+            else:
+                wall_lost_count = 0
 
         elif current_state == STATE_TURN_LEFT:
-            if dist_front >= FRONT_DIST_STOP:
+            turn_elapsed_ms = (now - turn_start_time) * 1000
+            # attendre le minimum ET que le front soit libre
+            if turn_elapsed_ms >= TURN_LEFT_MIN_MS and dist_front >= FRONT_DIST_STOP:
                 current_state = STATE_FOLLOW
+                follow_since  = now
                 print("→ FOLLOW")
 
         elif current_state == STATE_U_TURN:
-            elapsed = time.time() - u_turn_start
+            elapsed = now - u_turn_start
             if elapsed >= U_TURN_DURATION and dist_right <= WALL_LOST:
                 current_state = STATE_FOLLOW
+                follow_since  = now
                 print("→ FOLLOW (U-turn done)")
             elif dist_front < FRONT_DIST_STOP:
-                current_state = STATE_TURN_LEFT
+                current_state   = STATE_TURN_LEFT
+                turn_start_time = now
                 print("→ TURN_LEFT")
 
-        elif current_state == STATE_SEEK_RIGHT:
-            if dist_right <= WALL_LOST:
-                current_state = STATE_FOLLOW
-                print("→ FOLLOW")
-
+        # ── Actions ───────────────────────────────────────────────────────────
         if current_state == STATE_FOLLOW:
             error      = dist_right - WALL_TARGET
             correction = int(Kp * error)
             correction = max(-150, min(150, correction))
             left  = BASE_SPEED + correction
             right = BASE_SPEED - correction
+            motors_run(motors_dict, left, right)
             print("FOLLOW right={:.1f}  err={:.1f}  corr={}".format(dist_right, error, correction))
 
         elif current_state == STATE_TURN_LEFT:
-            left, right = -260, 260
+            rotate_cw(motors_dict, speed=ROTATE_SPEED)
 
         elif current_state == STATE_U_TURN:
-            left, right = 280, 60
-
-        elif current_state == STATE_SEEK_RIGHT:
-            left, right = 280, 120
-
-        motors_run(motors_dict, left, right)
-
-        state.mqtt_client.publish("car/{}/telemetry".format(state.CAR_ID), canonical_json({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "mode": "follow_wall",
-            "sensors": {
-                "d_front": dist_front,
-                "d_right": dist_right,
-            },
-            "command": {
-                "left_pwm":  left,
-                "right_pwm": right
-            }
-        }))
+            rotate_ccw(motors_dict, speed=ROTATE_SPEED)
 
         time.sleep(0.015)
 
     stop_motors(motors_dict)
-    print("Right wall follow stopped pls for the love of god khdm ")
+    print("Right wall follow stopped")
 
 # ── Top-down obstacle avoidance ───────────────────────────────────────────────
 

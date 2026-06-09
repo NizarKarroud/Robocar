@@ -23,6 +23,7 @@ motors_dict = {
 }
 
 state.motors_dict = motors_dict
+state.dist_sensor_dict = dist_sensor_dict
 
 trail_sensors_dict = {
     'left':  TXT_M_I7_trail_follower,
@@ -35,8 +36,22 @@ dist_sensor_dict = {
     'right' : TXT_M_I4_ultrasonic_distance_meter
 
 }
+
+
 client = connect_mqtt()
 client.loop_start()
+
+def sensor_loop():
+    from mqtt_handlers import publish_sensors
+    while True:
+        try:
+            if state.mqtt_client and state.CLIENT_ID:
+                publish_sensors(state.mqtt_client, state.CAR_ID)
+        except Exception as e:
+            print("sensor_loop error:", e)
+        time.sleep(0.2)
+
+threading.Thread(target=sensor_loop, daemon=True).start()
 
 COMMAND_MAP = {
     "follow_line":   lambda: commands.run_follow_line(motors_dict, trail_sensors_dict),
@@ -85,8 +100,8 @@ while True:
         print("Unknown command:", command)
 
 
-# def pause():
-#     time.sleep(0.2)
+def pause():
+    time.sleep(0.2)
 
 
 # print("=== Cardinal directions ===")
@@ -206,3 +221,8 @@ while True:
 # pause()
 
 # print("=== All tests complete ===")
+
+#commands.run_follow_wall(motors_dict, dist_sensor_dict)
+#commands.run_braitenberg(motors_dict, dist_sensor_dict)
+#commands.run_avoid_topdown(motors_dict, dist_sensor_dict)
+#commands.run_follow_line(motors_dict, trail_sensors_dict)

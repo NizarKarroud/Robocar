@@ -5,6 +5,7 @@ import DisplayScreen from "./components/DisplayScreen/DisplayScreen";
 import ControlPad    from "./components/ControlPad/ControlPad";
 import MiniCar       from "./components/MiniCar/MiniCar";
 import MovementPanel from "./components/MovementPanel/MovementPanel";
+import TrajectoryModal from "./components/TrajectoryModal/TrajectoryModal";
 import { useRobotState } from "./hooks/useRobotState";
 import { getSensors } from "./services/api";
 import "./index.css";
@@ -15,6 +16,7 @@ export default function App() {
   const [darkMode,       setDarkMode]       = useState(true);
   const [connected,      setConnected]      = useState(false);
   const [joystickActive, setJoystickActive] = useState(false);
+  const [showTrajectory, setShowTrajectory] = useState(false);
 
   useEffect(() => {
     if (!connected) return;
@@ -27,6 +29,10 @@ export default function App() {
     return () => clearInterval(id);
   }, [connected]);
 
+   useEffect(() => {
+    console.log("showTrajectory =", showTrajectory);
+  }, [showTrajectory]);
+  
   function handleConnected() {
     setConnected(true);
     dispatch({ type: "UPDATE_STATE", payload: { connected: true } });
@@ -52,6 +58,7 @@ export default function App() {
         setMode={setMode}
         dispatch={dispatch}
         connected={connected}
+        onGenerateGraph={() => setShowTrajectory(true)} 
       />
       <main className="main-grid">
         <DisplayScreen
@@ -75,6 +82,9 @@ export default function App() {
           <MiniCar sensors={robotState.sensors} />
         </aside>
       </main>
+      {showTrajectory && (
+        <TrajectoryModal onClose={() => setShowTrajectory(false)} />
+      )}
     </div>
   );
 }

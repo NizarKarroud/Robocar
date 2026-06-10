@@ -362,51 +362,73 @@ def _activation(distance_cm, safe_dist):
 # ── Braitenberg vehicle — 3 capteurs (front, right, left) ────────────────────
 
 def run_braitenberg(motors_dict, dist_sensor_dict):
-    BASE_SPEED    = 220
-    MAX_SENSOR    = 60.0
-    MIN_DIST      = 3.0
-    TARGET_DIST   = 12.0
+    BASE_SPEED  = 250
+    MAX_SENSOR  = 60.0       # clamp capteurs — 1023 devient 60 → pf=0
+    MIN_DIST    = 3.0
+    MAX_PWM     = 480
+    ESCAPE_DIST = 15.0       # front < 15cm → on compte les frames
+    ESCAPE_FRAMES = 5        # 5 frames consécutives → escape
+    ESCAPE_DURATION = 0.6    # secondes de recul
 
-    # Poids Braitenberg
-    # front  → inhibe les deux roues symétriquement
-    W_FRONT_LEFT  = -350.0
-    W_FRONT_RIGHT = -350.0
-    # right  → excite gauche, inhibe droite  (fuit le mur droit)
-    W_RIGHT_LEFT  =  180.0
-    W_RIGHT_RIGHT = -180.0
-    # left   → excite droite, inhibe gauche  (fuit le mur gauche)
-    W_LEFT_LEFT   = -180.0
-    W_LEFT_RIGHT  =  180.0
+    W_FL = -400.0
+    W_FR = -400.0
+    W_RL =  300.0
+    W_RR = -300.0
+    W_LL = -300.0
+    W_LR =  300.0
 
-    print("Starting Braitenberg (3 sensors)")
+    def proximity(d):
+        d = max(MIN_DIST, min(d, MAX_SENSOR))
+        return 1.0 - (d / MAX_SENSOR)
+
+    print("Starting Braitenberg vehicle 2b")
     state.command_event.clear()
 
+    stuck_count  = 0
+    escape_until = 0.0
+
     while not state.command_event.is_set():
-        d_front = max(MIN_DIST, min(dist_sensor_dict['front'].get_distance(), MAX_SENSOR))
-        d_right = max(MIN_DIST, min(dist_sensor_dict['right'].get_distance(), MAX_SENSOR))
-        d_left  = max(MIN_DIST, min(dist_sensor_dict['left'].get_distance(),  MAX_SENSOR))
+        now = time.time()
 
-        # Conversion en signal de proximité
-        prox_front = 1.0 / d_front
-        prox_right = (1.0 / d_right) - (1.0 / TARGET_DIST)  # >0 trop près, <0 trop loin
-        prox_left  = (1.0 / d_left)  - (1.0 / TARGET_DIST)
+        d_front = dist_sensor_dict['front'].get_distance()
+        d_right = dist_sensor_dict['right'].get_distance()
+        d_left  = dist_sensor_dict['left'].get_distance()
 
-        # Somme pondérée
-        left_spd  = (BASE_SPEED
-                     + W_FRONT_LEFT  * prox_front
-                     + W_RIGHT_LEFT  * prox_right
-                     + W_LEFT_LEFT   * prox_left)
+        # ── Escape mode ───────────────────────────────────────────────────────
+        if now < escape_until:
+            # choisit le côté le plus libre pour reculer en biais
+            if d_right > d_left:
+                move_backward(motors_dict, speed=280)   # recul droit
+            else:
+                move_backward(motors_dict, speed=280)
+            print("[ESCAPE] f={:.1f} r={:.1f} l={:.1f}".format(d_front, d_right, d_left))
+            time.sleep(0.02)
+            continue
 
-        right_spd = (BASE_SPEED
-                     + W_FRONT_RIGHT * prox_front
-                     + W_RIGHT_RIGHT * prox_right
-                     + W_LEFT_RIGHT  * prox_left)
+        # ── Détection coin / stuck ────────────────────────────────────────────
+        if d_front < ESCAPE_DIST:
+            stuck_count += 1
+            if stuck_count >= ESCAPE_FRAMES:
+                stuck_count  = 0
+                escape_until = now + ESCAPE_DURATION
+                print("[ESCAPE] triggered — front={:.1f}".format(d_front))
+                continue
+        else:
+            stuck_count = 0
 
-        left_spd  = int(max(0, min(512, left_spd)))
-        right_spd = int(max(0, min(512, right_spd)))
+        # ── Braitenberg normal ────────────────────────────────────────────────
+        pf = proximity(d_front)
+        pr = proximity(d_right)
+        pl = proximity(d_left)
 
-        print("[BRAITENBERG] f={:.1f} r={:.1f} l={:.1f} | pf={:.3f} pr={:.3f} pl={:.3f} | L={} R={}".format(
-            d_front, d_right, d_left, prox_front, prox_right, prox_left, left_spd, right_spd))
+        left_spd  = BASE_SPEED + W_FL * pf + W_RL * pr + W_LL * pl
+        right_spd = BASE_SPEED + W_FR * pf + W_RR * pr + W_LR * pl
+
+        left_spd  = int(max(-MAX_PWM, min(MAX_PWM, left_spd)))
+        right_spd = int(max(-MAX_PWM, min(MAX_PWM, right_spd)))
+
+        print("[BRAITENBERG] f={:.1f} r={:.1f} l={:.1f} | pf={:.2f} pr={:.2f} pl={:.2f} | L={} R={}".format(
+            d_front, d_right, d_left, pf, pr, pl, left_spd, right_spd))
 
         motors_run(motors_dict, left_spd, right_spd)
         time.sleep(0.02)
@@ -414,63 +436,73 @@ def run_braitenberg(motors_dict, dist_sensor_dict):
     stop_motors(motors_dict)
     print("Braitenberg stopped")
 
+def run_figure8_all(motors_dict, lam=15.0, omega_traj=0.30):
+    mode_duration = 4.0 * math.pi / omega_traj   # 2 loops on the lemniscate
+    dt = 0.015
 
-def move_figure_eight(motors_dict, lambda_cm=29.8, omega_traj=0.30, duration=20.0, mode="standard"):
-    
-    """
-    Lemniscate de Bernoulli
-    mode: "standard" | "cap_fixe" | "tomographie"
-    """
-    print("Starting figure eight - mode={}".format(mode))
+    def pause_5s():
+        for _ in range(500):
+            if state.command_event.is_set():
+                return True
+            time.sleep(0.01)
+        return False
+
+    def run_mode(mode_name):
+        print("Starting figure-8 mode={}".format(mode_name))
+        t = 0.0
+
+        while t < mode_duration:
+            if state.command_event.is_set():
+                return True
+
+            dx = math.cos(t)
+            dy = math.cos(2.0 * t)
+
+            vx_i = lam * omega_traj * dx
+            vy_i = lam * omega_traj * dy
+
+            if mode_name == "theta_const":
+                vx = vx_i
+                vy = vy_i
+                omega = 0.0
+
+            elif mode_name == "standard":
+                psi = math.atan2(dx, dy)
+                vx = vx_i * math.cos(psi) + vy_i * math.sin(psi)
+                vy = -vx_i * math.sin(psi) + vy_i * math.cos(psi)
+
+                denom = 2.0 * (dx * dx + dy * dy)
+                if denom > 1e-6:
+                    omega = omega_traj * (2.0 * dx * math.sin(2.0 * t) + math.sin(t) * dy) / denom
+                else:
+                    omega = 0.0
+
+            elif mode_name == "tomography":
+                angle = omega_traj * t
+                cos_a = math.cos(angle)
+                sin_a = math.sin(angle)
+                vx = lam * omega_traj * (dx * cos_a + dy * sin_a)
+                vy = lam * omega_traj * (-dx * sin_a + dy * cos_a)
+                omega = omega_traj
+
+            else:
+                print("Unknown mode: {}".format(mode_name))
+                return False
+
+            drive(motors_dict, vx=vx, vy=vy, omega=omega)
+            time.sleep(dt)
+            t += omega_traj * dt
+
+        stop_motors(motors_dict)
+        print("Done with {}, waiting 5s...".format(mode_name))
+        return pause_5s()
+
     state.command_event.clear()
 
-    t  = 0.0
-    dt = 0.05  # 20Hz
-
-    while not state.command_event.is_set() and t < duration:
-        # ── Vitesses inertielles ──────────────────────────────────────────
-        x_dot = lambda_cm * omega_traj * math.cos(omega_traj * t)
-        y_dot = lambda_cm * omega_traj * math.cos(2 * omega_traj * t)
-
-        if mode == "standard":
-            # orientation tangente à la trajectoire
-            psi = math.atan2(y_dot, x_dot)
-
-            vx =  x_dot * math.cos(psi) + y_dot * math.sin(psi)
-            vy = -x_dot * math.sin(psi) + y_dot * math.cos(psi)  # ≈ 0 par construction
-
-            # dérivée de psi — sécurisée contre division par zéro
-            denom = x_dot**2 + y_dot**2
-            if abs(denom) < 1e-6:
-                omega = 0.0
-            else:
-                x_ddot = -lambda_cm * omega_traj**2 * math.sin(omega_traj * t)
-                y_ddot = -2 * lambda_cm * omega_traj**2 * math.sin(2 * omega_traj * t)
-                omega  = (x_dot * y_ddot - y_dot * x_ddot) / denom
-
-        elif mode == "cap_fixe":
-            # psi = 0 → pas de rotation, vitesses inertielles = vitesses robot
-            vx    = x_dot
-            vy    = y_dot
-            omega = 0.0
-
-        elif mode == "tomographie":
-            # rotation continue à omega_traj, projection avec psi = omega_traj * t
-            psi = omega_traj * t
-            vx  = lambda_cm * omega_traj * (
-                math.cos(omega_traj * t) * math.cos(psi) +
-                math.cos(2 * omega_traj * t) * math.sin(psi)
-            )
-            vy  = lambda_cm * omega_traj * (
-                -math.cos(omega_traj * t) * math.sin(psi) +
-                math.cos(2 * omega_traj * t) * math.cos(psi)
-            )
-            omega = omega_traj  # constante
-
-        drive(motors_dict, vx=vx, vy=vy, omega=omega)
-
-        t  += dt
-        time.sleep(dt)
+    for mode_name in ["theta_const", "standard", "tomography"]:
+        stopped = run_mode(mode_name)
+        if stopped:
+            break
 
     stop_motors(motors_dict)
-    print("Figure eight stopped")
+    print("All modes done")

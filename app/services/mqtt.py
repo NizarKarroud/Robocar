@@ -9,8 +9,8 @@ from app.utils.tls import get_cert_and_key , get_cn_from_cert , CERT_FOLDER
 from app import state
 
 #BROKER ="192.168.50.122"
-#BROKER =  "192.168.137.1"
-BROKER = "10.101.242.107"
+BROKER =  "192.168.137.1"
+#BROKER = "10.101.242.107"
 
 PORT = 8883
 

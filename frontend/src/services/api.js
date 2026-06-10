@@ -148,3 +148,15 @@ export async function getSensors() {
   if (!res.ok) throw new Error(`Sensors fetch failed: ${res.status}`);
   return res.json(); // { left, right, front }
 }
+
+export async function getSessions() {
+  const res = await fetch(`${BASE}/car/sessions`);
+  if (!res.ok) throw new Error(`Sessions fetch failed: ${res.status}`);
+  return res.json(); // [{ id, mode, started_at, stopped_at }, ...]
+}
+
+export async function getTrajectory(sessionId) {
+  const res = await fetch(`${BASE}/car/sessions/${sessionId}/trajectory`);
+  if (!res.ok) throw new Error(`Trajectory fetch failed: ${res.status}`);
+  return res.json();
+}

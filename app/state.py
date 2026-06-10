@@ -18,3 +18,4 @@ camera_event: asyncio.Event = asyncio.Event()
 
 active_session_id: Optional[int] = None
 last_sensors: dict | None = None
+last_trajectory = None
